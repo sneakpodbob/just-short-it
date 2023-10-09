@@ -5,7 +5,8 @@
 }
 
 <div class="columns is-centered is-multiline my-6 px-4">
-    @if (!string.IsNullOrEmpty(Model.Message)) {
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
         <div class="column is-half-desktop is-two-thirds-tablet is-full-mobile notification is-info">
             <button class="delete" onclick="this.parentElement.remove()"></button>
             @Html.Raw(Model.Message)
@@ -60,7 +61,8 @@
                 <label class="label" asp-for="Model!.ExpirationDate">Expiration</label>
                 <div class="control">
                     <div class="select">
-                        @Html.DropDownListFor(m => m.Model!.ExpirationDate, new List<SelectListItem> {
+                        @Html.DropDownListFor(m => m.Model!.ExpirationDate, new List<SelectListItem>
+                        {
                             new("1 Day", DateTime.UtcNow.AddDays(1).ToBinary().ToString()),
                             new("1 Week", DateTime.UtcNow.AddDays(7).ToBinary().ToString()),
                             new("4 Weeks", DateTime.UtcNow.AddDays(4 * 7).ToBinary().ToString()),
@@ -82,4 +84,3 @@
         </form>
     </div>
 </div>
-

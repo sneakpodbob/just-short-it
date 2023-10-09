@@ -1,24 +1,28 @@
 ﻿@page
-@using JustShortIt.Model
 @model JustShortIt.Pages.InspectModel
 @{
     ViewData["Title"] = "Inspect";
 }
 
 <div class="columns is-centered is-multiline my-6 px-4">
-@if (Model.UrlRedirect is null) {
-    @if (!string.IsNullOrEmpty(Model.Message)) {
+@if (Model.UrlRedirect is null)
+{
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
         <div class="column is-half-desktop is-two-thirds-tablet is-full-mobile notification is-info">
             <button class="delete" onclick="this.parentElement.remove()"></button>
             @Html.Raw(Model.Message)
         </div>
-    } else {
+    } else
+    {
         <div class="column is-full has-text-centered">
             <h1 class="title is-2 has-text-danger">URL not found</h1>
             <h2 class="subtitle is-4">The given ID does not exist, it may have expired or been deleted.</h2>
         </div>
     }
-} else {
+} 
+else
+{
     <div class="column is-half-desktop is-two-thirds-tablet is-full-mobile">
         <dl class="">
             <dt>ID</dt>
@@ -32,7 +36,6 @@
             <button type="submit" class="button is-danger">Delete</button>
         </form>
     </div>
-
 }
     <div class="column is-full has-text-centered">
         <a class="button is-primary is-medium" asp-page="Urls">Back to URLs</a>

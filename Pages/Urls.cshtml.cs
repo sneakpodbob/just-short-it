@@ -1,26 +1,29 @@
-using System.Text.Encodings.Web;
 using JustShortIt.Model;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Text.RegularExpressions;
 using System.Web;
-using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Caching.Distributed;
 
 namespace JustShortIt.Pages; 
 
 [Authorize]
-public class UrlsModel : PageModel {
+public partial class UrlsModel : PageModel 
+{
     [BindProperty]
     public UrlRedirect? Model { get; set; }
     [BindProperty(Name="message")]
     public string? Message { get; set; }
 
+    [GeneratedRegex("[/+=]")]
+    private static partial Regex RegExGuid();
+
     private string BaseUrl { get; }
     private IDistributedCache Db { get; }
 
-    public UrlsModel(IConfiguration configuration, IDistributedCache db) {
+    public UrlsModel(IConfiguration configuration, IDistributedCache db)
+    {
 #if DEBUG
 	    BaseUrl = "https://localhost/";
 #else 
@@ -29,36 +32,42 @@ public class UrlsModel : PageModel {
         Db = db;
     }
     
-    public async Task<IActionResult> OnPostInspectAsync() {
+    public async Task<IActionResult> OnPostInspectAsync()
+    {
         string? id = Request.Form["Inspect_Id"];
-        if (id is null || string.IsNullOrEmpty(id)) {
+        if (id is null || string.IsNullOrEmpty(id))
+        {
             ModelState.AddModelError("Inspect_Id", "ID is a required field");
             return Page();
         }
 
-        if (await Db.GetAsync(id) is null) {
-            ModelState.AddModelError("Inspect_Id", "ID does not exist");
-            return Page();
-        }
+        if (await Db.GetAsync(id) is not null) return RedirectToPage("Inspect", new { Id = id });
 
-        return RedirectToPage("Inspect", new { Id = id });
+        ModelState.AddModelError("Inspect_Id", "ID does not exist");
+        return Page();
     }
 
-    public async Task<IActionResult> OnPostAsync() {
+    public async Task<IActionResult> OnPostAsync()
+    {
         if (!ModelState.IsValid) return Page();
-        string id = HttpUtility.UrlEncode(Model.Id);
+        if (Model is null) return Page();
 
-        if (await Db.GetAsync(id) is not null) {
+        var id = HttpUtility.UrlEncode(Model.Id);
+
+        if (await Db.GetAsync(id) is not null)
+        {
             Message = "This ID is already taken, sorry!";
             return Page();
         }
 
-        if (Uri.TryCreate($"{BaseUrl}{id}", UriKind.Absolute, out Uri? link) is false) {
+        if (Uri.TryCreate($"{BaseUrl}{id}", UriKind.Absolute, out var link) is false)
+        {
             Message = "This ID cannot be used in a URL, sorry!";
             return Page();
         }
 
-        await Db.SetStringAsync(id, Model.Target, new DistributedCacheEntryOptions {
+        await Db.SetStringAsync(id, Model.Target, new DistributedCacheEntryOptions
+        {
             AbsoluteExpiration = DateTime.FromBinary(long.Parse(Model.ExpirationDate))
         });
         
@@ -70,14 +79,16 @@ public class UrlsModel : PageModel {
         return OnGet(Message);
     }
     
-    public IActionResult OnGet(string message) {
+    public IActionResult OnGet(string message)
+    {
         Message = message;
         Model = new UrlRedirect(GenerateNewId(), string.Empty, string.Empty);
         return Page();
     }
     
-    private static string GenerateNewId() {
-        string base64Guid = Regex.Replace(Convert.ToBase64String(Guid.NewGuid().ToByteArray()), "[/+=]", "");  ;
+    private static string GenerateNewId()
+    {
+        var base64Guid = RegExGuid().Replace(Convert.ToBase64String(Guid.NewGuid().ToByteArray()), "");
         return base64Guid[..6];
     }
 }

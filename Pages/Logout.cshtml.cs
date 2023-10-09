@@ -5,8 +5,10 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace JustShortIt.Pages;
 
-public class LogoutModel : PageModel {
-    public async Task<IActionResult> OnGetAsync() {
+public class LogoutModel : PageModel
+{
+    public async Task<IActionResult> OnGetAsync()
+    {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         return RedirectToPage("Index");
     }

@@ -1,10 +1,10 @@
+This is my fork of [Just Short It](https://github.com/miawinter98/just-short-it)
+I forked it to play around a litte and read the code, adapt it to my code formatting style and maybe adapt some little things.
+You might as well go to the original repository and either use that or fork it yourself.
+
 # Just Short It (damnit)!
 
-The most KISS single user URL shortener there is.
-
-![](https://img.shields.io/github/license/miawinter98/just-short-it?color=green)
-![](https://img.shields.io/docker/pulls/miawinter/just-short-it?color=informational)
-![](https://img.shields.io/docker/stars/miawinter/just-short-it?color=yellow)
+A KISS single user URL shortener.
 
 ## To simply run Just Short It in a container run:
 ```
@@ -13,7 +13,6 @@ docker run -e JSI_BaseUrl=<your-url> \
            -e JSI_Account__Password=<your-password> \
            miawinter/just-short-it:latest
 ```
-
 
 ## In Docker Compose:
 ```docker-compose
@@ -69,11 +68,12 @@ There you go, now your urls survive a restart!
 
 # Https
 
-Just Short It! is not supporting Https, I reconmend using a reverse Proxy for hosting
-that handles SSL. I can highly reconmend jwilders 
+Just Short It! is not supporting Https, you may consider using a reverse Proxy for hosting
+that handles SSL.
+
+e.g.:
 [nginx-proxy](https://github.com/nginx-proxy/nginx-proxy) togehter with 
 [acme-companion](https://github.com/nginx-proxy/acme-companion), 
-there is no easier way to get a reverse proxy with automatic certificate renewal.
 
 Here is an Example of how to use Just Short It! togehter with nginx-proxy:
 
@@ -151,8 +151,7 @@ volumes:
 
 # License and Attribution
 
-Just Short It by [Mia Winter](https://miawinter.de/) is licensed under the [MIT License](https://en.wikipedia.org/wiki/MIT_License).  
+Based on:
+Just Short It by [Mia Winter](https://miawinter.de/), licensed under the [MIT License](https://en.wikipedia.org/wiki/MIT_License).  
 Just Short It uses [Bulma](https://bulma.io/) for styling, Bulma is licensed under the [MIT License](https://github.com/jgthms/bulma/blob/master/LICENSE).
-
-
-Copyright (c) 2023 Mia Winter
+Original Copyright (c) 2023 Mia Winter
