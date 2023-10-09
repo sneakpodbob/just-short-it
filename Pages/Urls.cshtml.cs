@@ -1,3 +1,4 @@
+using System.Text;
 using JustShortIt.Model;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -6,14 +7,14 @@ using System.Text.RegularExpressions;
 using System.Web;
 using Microsoft.Extensions.Caching.Distributed;
 
-namespace JustShortIt.Pages; 
+namespace JustShortIt.Pages;
 
 [Authorize]
-public partial class UrlsModel : PageModel 
+public partial class UrlsModel : PageModel
 {
     [BindProperty]
     public UrlRedirect? Model { get; set; }
-    [BindProperty(Name="message")]
+    [BindProperty(Name = "message")]
     public string? Message { get; set; }
 
     [GeneratedRegex("[/+=]")]
@@ -25,13 +26,13 @@ public partial class UrlsModel : PageModel
     public UrlsModel(IConfiguration configuration, IDistributedCache db)
     {
 #if DEBUG
-	    BaseUrl = "https://localhost/";
+        BaseUrl = "https://localhost/";
 #else 
         BaseUrl = new Uri(BaseUrl, UriKind.Absolute).ToString();
 #endif
         Db = db;
     }
-    
+
     public async Task<IActionResult> OnPostInspectAsync()
     {
         string? id = Request.Form["Inspect_Id"];
@@ -56,13 +57,13 @@ public partial class UrlsModel : PageModel
 
         if (await Db.GetAsync(id) is not null)
         {
-            Message = "This ID is already taken, sorry!";
+            Message = "This ID is already taken.";
             return Page();
         }
 
         if (Uri.TryCreate($"{BaseUrl}{id}", UriKind.Absolute, out var link) is false)
         {
-            Message = "This ID cannot be used in a URL, sorry!";
+            Message = "This ID cannot be used in a URL.";
             return Page();
         }
 
@@ -70,25 +71,38 @@ public partial class UrlsModel : PageModel
         {
             AbsoluteExpiration = DateTime.FromBinary(long.Parse(Model.ExpirationDate))
         });
-        
-        ModelState.Clear(); 
-        ModelState.SetModelValue(nameof(UrlRedirect.Id), GenerateNewId(), GenerateNewId());
+
+        ModelState.Clear();
+        var generateNewId = await GenerateNewId();
+        ModelState.SetModelValue(nameof(UrlRedirect.Id), generateNewId, generateNewId);
 
         Message = $"URL Generated! <a href='{link}'>{link}</a>. " +
                   $"<button class='button is-link is-small' onclick='navigator.clipboard.writeText(\"{link}\")'>Copy</button>";
-        return OnGet(Message);
+        return await OnGet(Message);
     }
-    
-    public IActionResult OnGet(string message)
+
+    public async Task<IActionResult> OnGet(string message)
     {
         Message = message;
-        Model = new UrlRedirect(GenerateNewId(), string.Empty, string.Empty);
+        Model = new UrlRedirect(await GenerateNewId(), string.Empty, string.Empty);
         return Page();
     }
-    
-    private static string GenerateNewId()
+
+    private async Task<string> GenerateNewId()
     {
-        var base64Guid = RegExGuid().Replace(Convert.ToBase64String(Guid.NewGuid().ToByteArray()), "");
-        return base64Guid[..6];
+        while (true)
+        {
+            var base64Guid = RegExGuid().Replace(Convert.ToBase64String(Guid.NewGuid().ToByteArray()), "");
+
+            var newId = string.Empty;
+            // loop from 1 to the length of base64Guid
+
+            foreach (var t in base64Guid[..16])
+            {
+                newId += t;
+
+                if (await Db.GetAsync(newId) is null) return newId;
+            }
+        }
     }
 }
