@@ -1,4 +1,5 @@
-This is my fork of [Just Short It](https://github.com/miawinter98/just-short-it)
+This is my fork of [Just Short It](https://github.com/miawinter98/just-short-it).
+
 I forked it to play around a litte and read the code, adapt it to my code formatting style and maybe adapt some little things.
 You might as well go to the original repository and either use that or fork it yourself.
 
