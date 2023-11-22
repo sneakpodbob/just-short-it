@@ -27,7 +27,7 @@ public partial class UrlsModel : PageModel
 #if DEBUG
         BaseUrl = "https://localhost/";
 #else 
-        BaseUrl = new Uri(BaseUrl, UriKind.Absolute).ToString();
+        BaseUrl = new Uri(BaseUrl ?? throw new InvalidOperationException("BaseUrl not configured correctly."), UriKind.Absolute).ToString();
 #endif
         Db = db;
     }
