@@ -15,7 +15,9 @@ public class LoginModel : PageModel
 
     private AuthenticationService Authentication { get; }
 
+#pragma warning disable IDE0290 // Use primary constructor
     public LoginModel(AuthenticationService authentication)
+#pragma warning restore IDE0290 // Use primary constructor
     {
         Authentication = authentication;
     }
