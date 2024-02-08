@@ -17,8 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="BuildWebCompiler2022" Version="1.14.10" />
-    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.8.3" />
+    <PackageReference Include="BuildWebCompiler2022" Version="1.14.10"  Condition="$([MSBuild]::IsOsPlatform('Windows'))"/>
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.1" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.19.6" />
     <PackageReference Include="StackExchange.Redis" Version="2.7.17" />
