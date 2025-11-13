@@ -1,53 +1,57 @@
 /* ditching the roundings */
-$radius-small: 3px
-$radius: 8px
-$radius-large: 12px
+$jsi-radius-small: 3px
+$jsi-radius: 8px
+$jsi-radius-large: 12px
 
 /**/
-$primary:         hsl(237, 70%, 33%)
-$secondary:       hsl(182, 77%, 43%)
-$secondary-light: hsl(182, 77%, 51%)
-$secondary-dark:  hsl(191, 77%, 46%)
+$jsi-primary:         hsl(237, 70%, 33%)
+$jsi-secondary:       hsl(182, 77%, 43%)
+$jsi-secondary-dark:  hsl(191, 77%, 46%)
+$jsi-secondary-light: hsl(182, 77%, 51%)
 
-$weight-light: 400
-$weight-normal: 500
-$weight-medium: 600
-$weight-semibold: 700
-$weight-bold: 800
+$jsi-weight-light: 400
+$jsi-weight-normal: 500
+$jsi-weight-medium: 600
+$jsi-weight-semibold: 700
+$jsi-weight-bold: 800
 
-$link: $secondary
-$link-hover: $secondary-dark
+$jsi-scheme-main: hsl(0, 0%, 8%)
+$jsi-scheme-main-bis: hsl(0, 0%, 4%)
+$jsi-scheme-main-ter: hsl(0, 0%, 0%)
 
-$scheme-main: hsl(0, 0%, 8%)
-$scheme-main-bis: hsl(0, 0%, 4%)
-$scheme-main-ter: hsl(0, 0%, 0%)
+$jsi-text: $jsi-secondary
+$jsi-text-strong: $jsi-secondary-light
 
-$text: $secondary
-$text-light: $secondary-light
-$text-strong: $secondary-light
+$jsi-footer-padding: 1rem
 
-$footer-padding: 1rem
+@use "../../node_modules/bulma/sass" as bulma with (
+	$radius-small: $jsi-radius-small,
+	$radius: $jsi-radius,
+	$radius-large: $jsi-radius-large,
+	$primary: $jsi-primary,
+	$weight-light: $jsi-weight-light,
+	$weight-normal: $jsi-weight-normal,
+	$weight-medium: $jsi-weight-medium,
+	$weight-semibold: $jsi-weight-semibold,
+	$weight-bold: $jsi-weight-bold,
+	$link: $jsi-secondary,
+	$scheme-main: $jsi-scheme-main,
+	$scheme-main-bis: $jsi-scheme-main-bis,
+	$scheme-main-ter: $jsi-scheme-main-ter,
+	$text: $jsi-text,
+	$text-strong: $jsi-text-strong,
+	$footer-padding: $jsi-footer-padding
+)
 
 /* bulma generates the colors, so we have to overwrite them */
 a.button.is-primary,
 button.button.is-primary
-	color: $text-strong !important
+	color: bulma.$text-strong !important
 
 nav.navbar.is-primary
 	box-shadow: none !important
 	.navbar-item
-		color: $text-strong !important
+		color: bulma.$text-strong !important
 
-root, html, body 
+root, html, body
 	letter-spacing: 0.05rem
-
-/* TODO check what we need here and ditch the rest */
-/* don't judge me */ 
-@import "../../node_modules/bulma/sass/utilities/_all"
-@import "../../node_modules/bulma/sass/base/_all"
-@import "../../node_modules/bulma/sass/elements/_all"
-@import "../../node_modules/bulma/sass/form/_all"
-@import "../../node_modules/bulma/sass/components/_all"
-@import "../../node_modules/bulma/sass/grid/_all"
-@import "../../node_modules/bulma/sass/helpers/_all"
-@import "../../node_modules/bulma/sass/layout/_all"

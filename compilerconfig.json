@@ -1,6 +1,6 @@
 ﻿[
   {
-    "outputFile": "wwwroot/css/index.css",
+    "outputFile": "wwwroot/css/index.min.css",
     "inputFile": "wwwroot/css/index.sass"
   }
 ]

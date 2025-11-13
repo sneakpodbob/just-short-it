@@ -8,6 +8,9 @@ builder.Services.AddRazorPages();
 
 // Get Configurations
 var redisConnection = builder.Configuration.GetSection("Redis").Get<RedisConnection>();
+var securePolicy = builder.Environment.IsDevelopment()
+    ? CookieSecurePolicy.SameAsRequest
+    : CookieSecurePolicy.Always;
 
 #if DEBUG
 const string baseUrl = "http://localhost/";
@@ -57,6 +60,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     options.AccessDeniedPath = "/Login";
     options.LoginPath = "/Login";
     options.LogoutPath = "/Logout";
+    options.Cookie.SecurePolicy = securePolicy;
 });
 
 var app = builder.Build();
@@ -65,7 +69,7 @@ var app = builder.Build();
 app.UseCookiePolicy(new CookiePolicyOptions
 {
     MinimumSameSitePolicy = SameSiteMode.Strict,
-    Secure = CookieSecurePolicy.Always
+    Secure = securePolicy
 });
 
 // Configure the HTTP request pipeline.
@@ -73,6 +77,7 @@ if (!app.Environment.IsDevelopment()) app.UseExceptionHandler("/Error");
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapRazorPages();
 app.Run();

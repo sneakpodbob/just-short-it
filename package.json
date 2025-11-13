@@ -1,5 +1,12 @@
 {
+  "scripts": {
+    "build:css": "sass wwwroot/css/index.sass wwwroot/css/index.min.css --style=compressed --no-source-map",
+    "watch:css": "npm run build:css -- --watch"
+  },
   "dependencies": {
-    "bulma": "^0.9.4"
+    "bulma": "^1.0.2"
+  },
+  "devDependencies": {
+    "sass": "^1.77.8"
   }
 }
