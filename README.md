@@ -30,7 +30,7 @@ The Sass entry point (`wwwroot/css/index.sass`) targets Bulma 1.x and the Dart S
 docker run -p 8081:8081 -e JSI_BaseUrl=<your-url> \
            -e JSI_Account__Username=<your-username> \
            -e JSI_Account__Password=<your-password> \
-           miawinter/just-short-it:latest
+           sneakpodbob/just-short-it:latest
 ```
 
 The container listens on port `8081`.
@@ -99,6 +99,8 @@ e.g.:
 [nginx-proxy](https://github.com/nginx-proxy/nginx-proxy) togehter with
 
 ## License and Attribution
+
+Still on [MIT License](LICENSE)
 
 Based on:
 Just Short It by [Mia Winter](https://miawinter.de/), licensed under the [MIT License](https://en.wikipedia.org/wiki/MIT_License).  
