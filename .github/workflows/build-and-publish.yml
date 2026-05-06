@@ -38,7 +38,7 @@ jobs:
         run: dotnet build JustShortIt.slnx --no-restore -c Release
 
       - name: Test
-        run: dotnet test JustShortIt.slnx --no-build -c Release
+        run: dotnet test --solution JustShortIt.slnx --no-build -c Release
 
   publish:
     name: Publish Docker Image
