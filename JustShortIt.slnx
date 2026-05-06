@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="just-short-it.Tests/JustShortIt.Tests.csproj" />
+  <Project Path="just-short-it/JustShortIt.csproj" />
+</Solution>
