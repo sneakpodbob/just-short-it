@@ -1,5 +1,6 @@
 using JustShortIt.Model;
 using JustShortIt.Service;
+using Coravel;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
@@ -72,6 +73,10 @@ if (user is null || string.IsNullOrEmpty(user.Username) || string.IsNullOrEmpty(
 Directory.CreateDirectory(Path.GetDirectoryName(databasePath) ?? AppContext.BaseDirectory);
 builder.Services.AddDbContext<JustShortItDbContext>(options => options.UseSqlite($"Data Source={databasePath}"));
 builder.Services.AddScoped<SqliteUrlStore>();
+builder.Services.AddScoped<SqliteMaintenanceRepository>();
+builder.Services.AddScheduler();
+builder.Services.AddTransient<ExpiredRedirectCleanupInvocable>();
+builder.Services.AddTransient<SqliteMaintenanceInvocable>();
 Console.WriteLine($"Running with SQLite persistence at '{databasePath}'.");
 
 // Add Authentication
@@ -100,6 +105,12 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 var app = builder.Build();
+
+app.Services.UseScheduler(scheduler =>
+{
+    scheduler.Schedule<ExpiredRedirectCleanupInvocable>().Hourly();
+    scheduler.Schedule<SqliteMaintenanceInvocable>().Weekly();
+});
 
 using (var scope = app.Services.CreateScope())
 {

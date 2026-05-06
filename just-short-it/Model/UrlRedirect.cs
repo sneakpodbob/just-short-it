@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace JustShortIt.Model; 
 
-[BindProperties]
 /// <summary>
 /// UI model used when creating or displaying a short URL mapping.
 /// </summary>
@@ -12,4 +11,5 @@ namespace JustShortIt.Model;
 /// <param name="ExpirationDate">
 /// Expiration payload serialized as <see cref="long"/> from <see cref="DateTime.ToBinary()"/>.
 /// </param>
+[BindProperties]
 public record UrlRedirect([Required, MinLength(1), MaxLength(16)]string Id, [Required, Url]string Target, [Required]string ExpirationDate);
