@@ -9,14 +9,17 @@ public class SqliteUrlStore
     private const int MaxIdLength = 16;
 
     private readonly JustShortItDbContext _dbContext;
+    private readonly ILogger<SqliteUrlStore> _logger;
 
     /// <summary>
     /// Creates a URL store backed by the provided EF Core context.
     /// </summary>
     /// <param name="dbContext">Database context used for redirect queries and updates.</param>
-    public SqliteUrlStore(JustShortItDbContext dbContext)
+    /// <param name="logger">Logger used to record redirect creation, deletion, and generation events.</param>
+    public SqliteUrlStore(JustShortItDbContext dbContext, ILogger<SqliteUrlStore> logger)
     {
         _dbContext = dbContext;
+        _logger = logger;
     }
 
     /// <summary>
@@ -74,12 +77,14 @@ public class SqliteUrlStore
         {
             if (existingRedirect.ExpiresAtUtc > now)
             {
+                _logger.LogWarning("Create redirect rejected because ID {RedirectId} is already active.", id);
                 return false;
             }
 
             existingRedirect.Target = target;
             existingRedirect.ExpiresAtUtc = expiration;
             await _dbContext.SaveChangesAsync();
+            _logger.LogInformation("Refreshed expired redirect {RedirectId}.", id);
             return true;
         }
 
@@ -93,10 +98,12 @@ public class SqliteUrlStore
         try
         {
             await _dbContext.SaveChangesAsync();
+            _logger.LogInformation("Created redirect {RedirectId}.", id);
             return true;
         }
         catch (DbUpdateException)
         {
+            _logger.LogWarning("Create redirect race detected for ID {RedirectId}; operation aborted.", id);
             return false;
         }
     }
@@ -113,11 +120,13 @@ public class SqliteUrlStore
         var existingRedirect = await _dbContext.Redirects.SingleOrDefaultAsync(x => x.Id == id);
         if (existingRedirect is null)
         {
+            _logger.LogDebug("Delete requested for missing redirect {RedirectId}; no action taken.", id);
             return;
         }
 
         _dbContext.Redirects.Remove(existingRedirect);
         await _dbContext.SaveChangesAsync();
+        _logger.LogInformation("Deleted redirect {RedirectId}.", id);
     }
 
     /// <summary>

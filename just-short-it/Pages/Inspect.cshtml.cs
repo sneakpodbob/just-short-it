@@ -17,14 +17,17 @@ public class InspectModel : PageModel
     public UrlRedirect? UrlRedirect { get; set; }
     
     private SqliteUrlStore Db { get; }
+    private readonly ILogger<InspectModel> _logger;
 
     /// <summary>
     /// Creates the inspect page model used to view and delete existing redirects.
     /// </summary>
     /// <param name="db">Redirect store used for lookup and deletion.</param>
-    public InspectModel(SqliteUrlStore db)
+    /// <param name="logger">Logger used to record inspect lookups and delete operations.</param>
+    public InspectModel(SqliteUrlStore db, ILogger<InspectModel> logger)
     {
         Db = db;
+        _logger = logger;
     }
 
     /// <summary>
@@ -35,9 +38,14 @@ public class InspectModel : PageModel
     /// </returns>
     public async Task<IActionResult> OnPostAsync()
     {
-        if (Id == null) return await OnGet(null, "Delete request without ID, aborted.");
+        if (Id == null)
+        {
+            _logger.LogWarning("Delete request aborted because no redirect ID was provided.");
+            return await OnGet(null, "Delete request without ID, aborted.");
+        }
 
         await Db.DeleteAsync(Id);
+        _logger.LogInformation("Inspect delete request completed for ID {RedirectId}.", Id);
 
         return await OnGet(null, $"ID '{Id}' successfully deleted.");
     }
@@ -60,7 +68,15 @@ public class InspectModel : PageModel
         if (Id is null) return Page();
 
         var url = await Db.GetTargetAsync(Id);
-        if (url is not null) UrlRedirect = new UrlRedirect(Id, url, string.Empty);
+        if (url is not null)
+        {
+            UrlRedirect = new UrlRedirect(Id, url, string.Empty);
+            _logger.LogInformation("Inspect lookup found redirect ID {RedirectId}.", Id);
+        }
+        else
+        {
+            _logger.LogWarning("Inspect lookup could not find redirect ID {RedirectId}.", Id);
+        }
 
         return Page();
     }

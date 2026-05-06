@@ -7,6 +7,7 @@ namespace JustShortIt.Pages;
 public class IndexModel : PageModel
 {
     private SqliteUrlStore Db { get; set; }
+    private readonly ILogger<IndexModel> _logger;
 
     // Bound property
     public string? Id { get; set; }
@@ -16,9 +17,11 @@ public class IndexModel : PageModel
     /// Creates the landing page model that resolves incoming short IDs.
     /// </summary>
     /// <param name="db">Redirect store used to resolve short IDs to target URLs.</param>
-    public IndexModel(SqliteUrlStore db)
+    /// <param name="logger">Logger used to record redirect hits and misses.</param>
+    public IndexModel(SqliteUrlStore db, ILogger<IndexModel> logger)
     {
         Db = db;
+        _logger = logger;
     }
 
     /// <summary>
@@ -35,7 +38,13 @@ public class IndexModel : PageModel
         if (Id is null) return Page();
 
         var data = await Db.GetTargetAsync(Id);
-        if (data is not null) return Redirect(data);
+        if (data is not null)
+        {
+            _logger.LogInformation("Redirect hit for ID {RedirectId}.", Id);
+            return Redirect(data);
+        }
+
+        _logger.LogWarning("Redirect miss for ID {RedirectId}.", Id);
 
         ErrorMessage = "Redirect ID not found, it may have been deleted or expired";
 

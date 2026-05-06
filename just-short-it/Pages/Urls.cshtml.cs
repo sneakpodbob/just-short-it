@@ -18,6 +18,7 @@ public class UrlsModel : PageModel
 
     private string? BaseUrl { get; }
     private SqliteUrlStore Db { get; }
+    private readonly ILogger<UrlsModel> _logger;
 
     /// <summary>
     /// Creates the page model and resolves the externally visible base URL used for generated links.
@@ -25,10 +26,11 @@ public class UrlsModel : PageModel
     /// <param name="configuration">Application configuration containing the production <c>BaseUrl</c> setting.</param>
     /// <param name="env">Host environment used to determine whether dynamic host-based URLs are allowed.</param>
     /// <param name="db">URL store used for ID generation and persistence.</param>
+    /// <param name="logger">Logger used to record URL creation events and errors.</param>
     /// <exception cref="InvalidOperationException">
     /// Thrown when running outside development and <c>BaseUrl</c> is missing or cannot be resolved as an absolute URI.
     /// </exception>
-    public UrlsModel(IConfiguration configuration, IWebHostEnvironment env, SqliteUrlStore db)
+    public UrlsModel(IConfiguration configuration, IWebHostEnvironment env, SqliteUrlStore db, ILogger<UrlsModel> logger)
     {
         if (!env.IsDevelopment())
         {
@@ -36,6 +38,7 @@ public class UrlsModel : PageModel
             BaseUrl = new Uri(configuredBaseUrl ?? throw new InvalidOperationException("BaseUrl not configured correctly."), UriKind.Absolute).ToString();
         }
         Db = db;
+        _logger = logger;
     }
 
     /// <summary>
@@ -76,13 +79,19 @@ public class UrlsModel : PageModel
         string? id = Request.Form["Inspect_Id"];
         if (id is null || string.IsNullOrEmpty(id))
         {
+            _logger.LogWarning("Inspect form submission rejected due to missing ID.");
             ModelState.AddModelError("Inspect_Id", "ID is a required field");
             await EnsureFormModelInitializedAsync();
             return Page();
         }
 
-        if (await Db.ExistsAsync(id)) return RedirectToPage("Inspect", new { Id = id });
+        if (await Db.ExistsAsync(id))
+        {
+            _logger.LogInformation("Inspect form redirected to details for ID {RedirectId}.", id);
+            return RedirectToPage("Inspect", new { Id = id });
+        }
 
+        _logger.LogWarning("Inspect form lookup failed because ID {RedirectId} does not exist.", id);
         ModelState.AddModelError("Inspect_Id", "ID does not exist");
         await EnsureFormModelInitializedAsync();
         return Page();
@@ -107,12 +116,14 @@ public class UrlsModel : PageModel
 
         if (!Uri.TryCreate($"{GetEffectiveBaseUrl()}{id}", UriKind.Absolute, out var link))
         {
+            _logger.LogWarning("URL creation rejected because ID {RedirectId} cannot form an absolute URL.", id);
             Message = "This ID cannot be used in a URL.";
             return Page();
         }
 
         if (!long.TryParse(Model.ExpirationDate, out var expirationDateBinary))
         {
+            _logger.LogWarning("URL creation rejected for ID {RedirectId} due to invalid expiration payload.", id);
             Message = "Expiration date is not valid.";
             return Page();
         }
@@ -120,6 +131,7 @@ public class UrlsModel : PageModel
         var expirationDate = DateTime.FromBinary(expirationDateBinary);
         if (!await Db.CreateAsync(id, Model.Target, expirationDate.ToUniversalTime()))
         {
+            _logger.LogWarning("URL creation rejected because ID {RedirectId} is already taken.", id);
             Message = "This ID is already taken.";
             return Page();
         }
@@ -130,6 +142,7 @@ public class UrlsModel : PageModel
 
         Message = "URL Generated!";
         GeneratedLink = link.ToString();
+        _logger.LogInformation("Created short URL {RedirectId} for target {TargetUrl}.", id, Model.Target);
         await EnsureFormModelInitializedAsync();
         return Page();
     }

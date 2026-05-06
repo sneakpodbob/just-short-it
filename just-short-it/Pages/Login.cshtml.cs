@@ -14,14 +14,17 @@ public class LoginModel : PageModel
     public User? UserModel { get; set; }
 
     private AuthenticationService Authentication { get; }
+    private ILogger<LoginModel> Logger { get; }
 
     /// <summary>
     /// Creates the login page model.
     /// </summary>
     /// <param name="authentication">Credential validator for the configured application user.</param>
-    public LoginModel(AuthenticationService authentication)
+    /// <param name="logger">Logger used to record login attempts and outcomes.</param>
+    public LoginModel(AuthenticationService authentication, ILogger<LoginModel> logger)
     {
         Authentication = authentication;
+        Logger = logger;
     }
 
     /// <summary>
@@ -35,7 +38,11 @@ public class LoginModel : PageModel
     /// </remarks>
     public async Task<IActionResult> OnPostAsync()
     {
-        if (!ModelState.IsValid) return Page();
+        if (!ModelState.IsValid)
+        {
+            Logger.LogWarning("Login attempt rejected due to invalid model state.");
+            return Page();
+        }
 
         if (Authentication.IsUser(UserModel!.Username, UserModel!.Password))
         {
@@ -61,9 +68,11 @@ public class LoginModel : PageModel
                 new ClaimsPrincipal(identity), 
                 properties);
 
+            Logger.LogInformation("User {Username} logged in successfully.", UserModel.Username);
             return RedirectToPage("Urls");
         }
 
+        Logger.LogWarning("Failed login attempt for username {Username}.", UserModel!.Username);
         ModelState.AddModelError(string.Empty, "Invalid Username or Password");
         return Page();
     }

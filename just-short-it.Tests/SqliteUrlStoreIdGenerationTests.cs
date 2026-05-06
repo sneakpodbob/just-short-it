@@ -1,6 +1,7 @@
 using JustShortIt.Model;
 using JustShortIt.Service;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace JustShortIt.Tests;
 
@@ -15,7 +16,7 @@ public class SqliteUrlStoreIdGenerationTests
     public async Task GenerateNewId_OnEmptyStore_ReturnsSingleCharacterId()
     {
         await using var dbContext = CreateDbContext();
-        var store = new SqliteUrlStore(dbContext);
+        var store = new SqliteUrlStore(dbContext, NullLogger<SqliteUrlStore>.Instance);
 
         var id = await store.GenerateNewId();
 
@@ -45,7 +46,7 @@ public class SqliteUrlStoreIdGenerationTests
 
         await dbContext.SaveChangesAsync();
 
-        var store = new SqliteUrlStore(dbContext);
+        var store = new SqliteUrlStore(dbContext, NullLogger<SqliteUrlStore>.Instance);
         var id = await store.GenerateNewId();
 
         await Assert.That(id).IsEqualTo("Z");
@@ -73,7 +74,7 @@ public class SqliteUrlStoreIdGenerationTests
 
         await dbContext.SaveChangesAsync();
 
-        var store = new SqliteUrlStore(dbContext);
+        var store = new SqliteUrlStore(dbContext, NullLogger<SqliteUrlStore>.Instance);
         var id = await store.GenerateNewId();
 
         await Assert.That(id.Length).IsEqualTo(2);
@@ -109,7 +110,7 @@ public class SqliteUrlStoreIdGenerationTests
 
         await dbContext.SaveChangesAsync();
 
-        var store = new SqliteUrlStore(dbContext);
+        var store = new SqliteUrlStore(dbContext, NullLogger<SqliteUrlStore>.Instance);
         var id = await store.GenerateNewId();
 
         await Assert.That(id).IsEqualTo("Q");
