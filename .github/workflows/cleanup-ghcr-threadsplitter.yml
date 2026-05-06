@@ -1,0 +1,126 @@
+name: Cleanup old GHCR images (just-short-it)
+
+on:
+  schedule:
+    - cron: '50 3 * * 4'
+  workflow_dispatch:
+    inputs:
+      keep_last:
+        description: Keep at least this many newest versions
+        required: false
+        default: '5'
+      keep_days:
+        description: Keep versions created within this many days
+        required: false
+        default: '30'
+      dry_run:
+        description: If true, only print what would be deleted
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: cleanup-ghcr-just-short-it
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete stale container versions
+        uses: actions/github-script@v7
+        env:
+          KEEP_LAST: ${{ github.event.inputs.keep_last || '5' }}
+          KEEP_DAYS: ${{ github.event.inputs.keep_days || '30' }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+          PACKAGE_NAME: just-short-it
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const packageName = process.env.PACKAGE_NAME;
+            const keepLast = Number(process.env.KEEP_LAST || '5');
+            const keepDays = Number(process.env.KEEP_DAYS || '30');
+            const dryRun = String(process.env.DRY_RUN || 'false').toLowerCase() === 'true';
+
+            if (!Number.isInteger(keepLast) || keepLast < 0) {
+              core.setFailed(`Invalid keep_last value: ${process.env.KEEP_LAST}`);
+              return;
+            }
+
+            if (!Number.isInteger(keepDays) || keepDays < 0) {
+              core.setFailed(`Invalid keep_days value: ${process.env.KEEP_DAYS}`);
+              return;
+            }
+
+            const ownerType = context.payload?.repository?.owner?.type;
+            const isOrg = ownerType === 'Organization';
+
+            const listRoute = isOrg
+              ? 'GET /orgs/{org}/packages/container/{package_name}/versions'
+              : 'GET /users/{username}/packages/container/{package_name}/versions';
+
+            const listParams = isOrg
+              ? { org: owner, package_name: packageName, per_page: 100 }
+              : { username: owner, package_name: packageName, per_page: 100 };
+
+            const versions = await github.paginate(listRoute, listParams);
+
+            if (!versions.length) {
+              core.info(`No versions found for ghcr.io/${owner}/${packageName}.`);
+              return;
+            }
+
+            versions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            const cutoff = new Date(Date.now() - keepDays * 24 * 60 * 60 * 1000);
+            core.info(`Found ${versions.length} versions for ghcr.io/${owner}/${packageName}.`);
+            core.info(`Keeping newest ${keepLast} and anything newer than ${cutoff.toISOString()}.`);
+
+            const toDelete = versions.filter((version, idx) => {
+              const createdAt = new Date(version.created_at);
+              const keepByCount = idx < keepLast;
+              const keepByAge = createdAt >= cutoff;
+              return !(keepByCount || keepByAge);
+            });
+
+            if (!toDelete.length) {
+              core.info('Nothing to delete.');
+              return;
+            }
+
+            const deleteRoute = isOrg
+              ? 'DELETE /orgs/{org}/packages/container/{package_name}/versions/{package_version_id}'
+              : 'DELETE /users/{username}/packages/container/{package_name}/versions/{package_version_id}';
+
+            core.info(`Versions eligible for deletion: ${toDelete.length}`);
+
+            for (const version of toDelete) {
+              const tags = version?.metadata?.container?.tags || [];
+              const label = tags.length ? tags.join(', ') : '(untagged)';
+              const info = `id=${version.id}, created_at=${version.created_at}, tags=${label}`;
+
+              if (dryRun) {
+                core.info(`[dry-run] Would delete ${info}`);
+                continue;
+              }
+
+              core.info(`Deleting ${info}`);
+              await github.request(deleteRoute, isOrg
+                ? {
+                    org: owner,
+                    package_name: packageName,
+                    package_version_id: version.id,
+                  }
+                : {
+                    username: owner,
+                    package_name: packageName,
+                    package_version_id: version.id,
+                  }
+              );
+            }
+
+            core.info(dryRun ? 'Dry run completed.' : 'Cleanup completed successfully.');
