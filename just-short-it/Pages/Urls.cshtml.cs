@@ -14,6 +14,7 @@ public class UrlsModel : PageModel
     public UrlRedirect? Model { get; set; }
     [BindProperty(Name = "message")]
     public string? Message { get; set; }
+    public string? GeneratedLink { get; set; }
 
     private string? BaseUrl { get; }
     private SqliteUrlStore Db { get; }
@@ -127,9 +128,10 @@ public class UrlsModel : PageModel
         var generateNewId = await Db.GenerateNewId();
         ModelState.SetModelValue(nameof(UrlRedirect.Id), generateNewId, generateNewId);
 
-        Message = $"URL Generated! <a href='{link}'>{link}</a>. " +
-                  $"<button class='button is-link is-small' onclick='navigator.clipboard.writeText(\"{link}\")'>Copy</button>";
-        return await OnGet(Message);
+        Message = "URL Generated!";
+        GeneratedLink = link.ToString();
+        await EnsureFormModelInitializedAsync();
+        return Page();
     }
 
     /// <summary>

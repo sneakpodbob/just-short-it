@@ -3,6 +3,7 @@ using JustShortIt.Service;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables("JSI_");
@@ -117,6 +118,8 @@ app.UseCookiePolicy(new CookiePolicyOptions
 app.Use(async (context, next) =>
 {
     var headers = context.Response.Headers;
+    var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
+    context.Items["CspNonce"] = nonce;
 
     // Prevent clickjacking (legacy; CSP frame-ancestors covers modern browsers)
     headers.XFrameOptions = "DENY";
@@ -131,9 +134,10 @@ app.Use(async (context, next) =>
     headers["Cross-Origin-Resource-Policy"] = "same-origin";
 
     // Content Security Policy
-    // All scripts and styles are served from 'self'; no inline scripts or styles are used.
+    // Scripts are served from 'self'; page-level inline scripts must present the per-request nonce.
     var csp = string.Join("; ",
         "default-src 'self'",
+        $"script-src 'self' 'nonce-{nonce}'",
         "form-action 'self'",
         "frame-ancestors 'none'",
         "object-src 'none'",

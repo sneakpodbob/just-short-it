@@ -9,7 +9,14 @@
     {
         <div class="column is-half-desktop is-two-thirds-tablet is-full-mobile notification is-info">
             <button class="delete" data-dismiss-parent></button>
-            @Html.Raw(Model.Message)
+            <span>@Model.Message</span>
+            @if (!string.IsNullOrWhiteSpace(Model.GeneratedLink))
+            {
+                <span>
+                    <a href="@Model.GeneratedLink">@Model.GeneratedLink</a>.
+                    <button type="button" class="button is-link is-small" data-copy-url="@Model.GeneratedLink">Copy</button>
+                </span>
+            }
         </div>
     }
 
@@ -84,3 +91,27 @@
         </form>
     </div>
 </div>
+
+@{
+    var cspNonce = HttpContext.Items["CspNonce"]?.ToString();
+}
+
+@section Scripts
+{
+    @if (!string.IsNullOrWhiteSpace(Model.GeneratedLink) && !string.IsNullOrWhiteSpace(cspNonce))
+    {
+        <script nonce="@cspNonce">
+            document.addEventListener('click', function (e) {
+                var copyButton = e.target.closest('[data-copy-url]');
+                if (!copyButton) {
+                    return;
+                }
+
+                var value = copyButton.getAttribute('data-copy-url');
+                if (value) {
+                    navigator.clipboard.writeText(value);
+                }
+            });
+        </script>
+    }
+}
