@@ -41,7 +41,7 @@ version: '3.4'
 services:
   just-short-it:
     container_name: JustShortIt
-    image: miawinter/just-short-it:latest
+    image: sneakpodbob/just-short-it:latest
     environment:
       - "JSI_BaseUrl=<your-url>"
       - "JSI_Account__Username=<your-username>"
@@ -66,7 +66,7 @@ version: '3.4'
 services:
   just-short-it:
     container_name: JustShortIt
-    image: miawinter/just-short-it:latest
+    image: sneakpodbob/just-short-it:latest
     environment:
       - "JSI_BaseUrl=<your-url>"
       - "JSI_Account__Username=<your-username>"
