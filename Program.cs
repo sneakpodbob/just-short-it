@@ -30,7 +30,7 @@ var baseUrl = builder.Configuration.GetValue<string>("BaseUrl");
 #endif
 
 // Check if everything is configured (right)
-if (string.IsNullOrEmpty(baseUrl) || Uri.IsWellFormedUriString(baseUrl, UriKind.Absolute) is false)
+if (string.IsNullOrEmpty(baseUrl) || !Uri.IsWellFormedUriString(baseUrl, UriKind.Absolute))
 {
     throw new ApplicationException(
         "Base-URL is not set to a correct URL, please provide JSI_BaseUrl with a valid url.");

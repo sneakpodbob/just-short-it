@@ -61,20 +61,20 @@ public partial class UrlsModel : PageModel
             return Page();
         }
 
-        if (Uri.TryCreate($"{BaseUrl}{id}", UriKind.Absolute, out var link) is false)
+        if (!Uri.TryCreate($"{BaseUrl}{id}", UriKind.Absolute, out var link))
         {
             Message = "This ID cannot be used in a URL.";
             return Page();
         }
 
-        if (long.TryParse(Model.ExpirationDate, out var expirationDateBinary) is false)
+        if (!long.TryParse(Model.ExpirationDate, out var expirationDateBinary))
         {
             Message = "Expiration date is not valid.";
             return Page();
         }
 
         var expirationDate = DateTime.FromBinary(expirationDateBinary);
-        if (await Db.CreateAsync(id, Model.Target, expirationDate.ToUniversalTime()) is false)
+        if (!await Db.CreateAsync(id, Model.Target, expirationDate.ToUniversalTime()))
         {
             Message = "This ID is already taken.";
             return Page();
@@ -109,7 +109,7 @@ public partial class UrlsModel : PageModel
             {
                 newId += t;
 
-                if (await Db.ExistsAsync(newId) is false) return newId;
+                if (!await Db.ExistsAsync(newId)) return newId;
             }
         }
     }
