@@ -90,21 +90,23 @@ public class SqliteUrlStore
 
         for (var length = 1; length <= MaxIdLength; length++)
         {
+            var currentLength = length;
+
             var existingIds = await _dbContext.Redirects
                 .AsNoTracking()
-                .Where(x => x.ExpiresAtUtc > now && x.Id.Length == length)
+                .Where(x => x.ExpiresAtUtc > now && x.Id.Length == currentLength)
                 .Select(x => x.Id)
                 .ToHashSetAsync();
 
             // If a length is fully saturated, move on to the next one.
-            if (existingIds.Count >= Math.Pow(IdAlphabet.Length, length))
+            if (existingIds.Count >= Math.Pow(IdAlphabet.Length, currentLength))
             {
                 continue;
             }
 
             while (true)
             {
-                var candidate = GenerateCandidate(length);
+                var candidate = GenerateCandidate(currentLength);
 
                 if (!existingIds.Contains(candidate))
                 {

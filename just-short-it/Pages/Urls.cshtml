@@ -8,7 +8,7 @@
     @if (!string.IsNullOrEmpty(Model.Message))
     {
         <div class="column is-half-desktop is-two-thirds-tablet is-full-mobile notification is-info">
-            <button class="delete" onclick="this.parentElement.remove()"></button>
+            <button class="delete" data-dismiss-parent></button>
             @Html.Raw(Model.Message)
         </div>
     }
@@ -44,7 +44,7 @@
             <div class="field">
                 <label class="label" asp-for="Model!.Id">ID</label>
                 <div class="control">
-                    <input required class="input" type="text" asp-for="Model!.Id" />
+                    <input required class="input" type="text" name="Model.Id" id="Model_Id" value="@(Model.Model?.Id ?? string.Empty)" />
                 </div>
                 <span class="help is-danger" asp-validation-for="Model!.Id"></span>
             </div>

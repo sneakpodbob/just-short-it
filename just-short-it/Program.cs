@@ -7,6 +7,23 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables("JSI_");
 builder.Services.AddRazorPages();
 
+// CORS — no cross-origin access is needed for this app.
+// In development allow localhost; in production deny all cross-origin requests.
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        if (builder.Environment.IsDevelopment())
+        {
+            policy.WithOrigins("http://localhost:5128", "https://localhost:7128")
+                  .AllowCredentials()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        }
+        // Production: no allowed origins → CORS headers are never emitted → browsers block cross-origin requests
+    });
+});
+
 // Get Configurations
 var sqlite = builder.Configuration.GetSection("Sqlite").Get<SqliteOptions>() ?? new SqliteOptions();
 var securePolicy = builder.Environment.IsDevelopment()
@@ -81,6 +98,47 @@ app.UseCookiePolicy(new CookiePolicyOptions
     MinimumSameSitePolicy = SameSiteMode.Strict,
     Secure = securePolicy
 });
+
+// Security headers
+app.Use(async (context, next) =>
+{
+    var headers = context.Response.Headers;
+
+    // Prevent clickjacking (legacy; CSP frame-ancestors covers modern browsers)
+    headers.XFrameOptions = "DENY";
+    // Prevent MIME-type sniffing
+    headers.XContentTypeOptions = "nosniff";
+    // Restrict referrer information
+    headers["Referrer-Policy"] = "no-referrer";
+    // Disable features the app never uses
+    headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()";
+    // Cross-origin isolation
+    headers["Cross-Origin-Opener-Policy"] = "same-origin";
+    headers["Cross-Origin-Resource-Policy"] = "same-origin";
+
+    // Content Security Policy
+    // All scripts and styles are served from 'self'; no inline scripts or styles are used.
+    var csp = string.Join("; ",
+        "default-src 'self'",
+        "form-action 'self'",
+        "frame-ancestors 'none'",
+        "object-src 'none'",
+        "base-uri 'self'");
+
+    if (!app.Environment.IsDevelopment())
+    {
+        // Require HTTPS for all sub-resources in production
+        csp += "; upgrade-insecure-requests";
+        // HSTS — nginx terminates TLS, but this header is forwarded to the browser
+        headers.StrictTransportSecurity = "max-age=31536000; includeSubDomains";
+    }
+
+    headers.ContentSecurityPolicy = csp;
+
+    await next();
+});
+
+app.UseCors();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment()) app.UseExceptionHandler("/Error");

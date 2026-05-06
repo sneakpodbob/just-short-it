@@ -10,7 +10,7 @@
     @if (!string.IsNullOrEmpty(Model.Message))
     {
         <div class="column is-half-desktop is-two-thirds-tablet is-full-mobile notification is-info">
-            <button class="delete" onclick="this.parentElement.remove()"></button>
+            <button class="delete" data-dismiss-parent></button>
             @Html.Raw(Model.Message)
         </div>
     }
