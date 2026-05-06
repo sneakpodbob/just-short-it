@@ -2,7 +2,7 @@
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
-EXPOSE 80
+EXPOSE 8081
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
@@ -25,5 +25,6 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 RUN mkdir -p /app/data
 ENV JSI_Sqlite__Path=/app/data/justshortit.db
+ENV ASPNETCORE_URLS=http://+:8081
 VOLUME ["/app/data"]
 ENTRYPOINT ["dotnet", "JustShortIt.dll"]

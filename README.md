@@ -27,11 +27,13 @@ The Sass entry point (`wwwroot/css/index.sass`) targets Bulma 1.x and the Dart S
 ## To simply run Just Short It in a container run
 
 ```bash
-docker run -e JSI_BaseUrl=<your-url> \
+docker run -p 8081:8081 -e JSI_BaseUrl=<your-url> \
            -e JSI_Account__Username=<your-username> \
            -e JSI_Account__Password=<your-password> \
            miawinter/just-short-it:latest
 ```
+
+The container listens on port `8081`.
 
 ## In Docker Compose
 
@@ -42,6 +44,8 @@ services:
   just-short-it:
     container_name: JustShortIt
     image: sneakpodbob/just-short-it:latest
+    ports:
+      - "8081:8081"
     environment:
       - "JSI_BaseUrl=<your-url>"
       - "JSI_Account__Username=<your-username>"
@@ -67,6 +71,8 @@ services:
   just-short-it:
     container_name: JustShortIt
     image: sneakpodbob/just-short-it:latest
+    ports:
+      - "8081:8081"
     environment:
       - "JSI_BaseUrl=<your-url>"
       - "JSI_Account__Username=<your-username>"
@@ -80,6 +86,9 @@ volumes:
 ```
 
 There you go, now your urls survive a restart!
+
+If NGINX runs on the same host and forwards to the container port, use
+`proxy_pass http://127.0.0.1:8081;`.
 
 ## Https
 
