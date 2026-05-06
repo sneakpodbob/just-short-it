@@ -1,16 +1,23 @@
 using JustShortIt.Model;
 using JustShortIt.Service;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables("JSI_");
 builder.Services.AddRazorPages();
 
 // Get Configurations
-var redisConnection = builder.Configuration.GetSection("Redis").Get<RedisConnection>();
+var sqlite = builder.Configuration.GetSection("Sqlite").Get<SqliteOptions>() ?? new SqliteOptions();
 var securePolicy = builder.Environment.IsDevelopment()
     ? CookieSecurePolicy.SameAsRequest
     : CookieSecurePolicy.Always;
+
+var databasePath = string.IsNullOrWhiteSpace(sqlite.Path) ? "data/justshortit.db" : sqlite.Path;
+if (!Path.IsPathRooted(databasePath))
+{
+    databasePath = Path.GetFullPath(databasePath, AppContext.BaseDirectory);
+}
 
 #if DEBUG
 const string baseUrl = "http://localhost/";
@@ -35,21 +42,11 @@ if (user is null || string.IsNullOrEmpty(user.Username) || string.IsNullOrEmpty(
         "Credentials not set, please provide JSI_Account__Username and JSI_Account__Password.");
 }
 
-// Set up Distributed Cache
-if (string.IsNullOrEmpty(redisConnection?.ConnectionString) is false)
-{
-    builder.Services.AddStackExchangeRedisCache(options =>
-    {
-        options.Configuration = redisConnection.ConnectionString;
-        options.InstanceName = redisConnection.InstanceName;
-    });
-    Console.WriteLine("Running with Redis distributed Cache.");
-}
-else
-{
-    builder.Services.AddDistributedMemoryCache();
-    Console.WriteLine("Running with in-memory distributed Cache.");
-}
+// Set up SQLite persistence
+Directory.CreateDirectory(Path.GetDirectoryName(databasePath) ?? AppContext.BaseDirectory);
+builder.Services.AddDbContext<JustShortItDbContext>(options => options.UseSqlite($"Data Source={databasePath}"));
+builder.Services.AddScoped<SqliteUrlStore>();
+Console.WriteLine($"Running with SQLite persistence at '{databasePath}'.");
 
 // Add Authentication
 builder.Services.AddSingleton(_ => new AuthenticationService(user));
@@ -64,6 +61,12 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<JustShortItDbContext>();
+    await dbContext.Database.EnsureCreatedAsync();
+}
 
 // Configure Cookies (used in Authentication)
 app.UseCookiePolicy(new CookiePolicyOptions

@@ -48,15 +48,17 @@ services:
       - "JSI_Account__Password=<your-password>"
 ```
 
-## Redis
+## SQLite persistence
 
-By default Just Short It saves all the redirects in a in-memory distributed Cache, which get's lost
-whenever the container restarts, so if you want to keep your redirects you wanna use redis.
+Just Short It now stores redirects in a SQLite database.
 
-You can configure the connection to redis using the environment variables `JSI_Redis__ConnectionString`
-and optional `JSI_Redis__InstanceName` (default is "JustShortIt").
+By default the database is created at `data/justshortit.db` relative to the application directory.
+You can override this with the environment variable `JSI_Sqlite__Path`.
 
-If you want to run both with compose, the most simple setup looks like this:
+In containers, `/app/data` is exposed as a volume and `JSI_Sqlite__Path` defaults to `/app/data/justshortit.db`.
+If you want to keep redirects across container restarts, mount that volume to the host.
+
+The simplest compose setup looks like this:
 
 ```docker-compose
 version: '3.4'
@@ -69,19 +71,12 @@ services:
       - "JSI_BaseUrl=<your-url>"
       - "JSI_Account__Username=<your-username>"
       - "JSI_Account__Password=<your-password>"
-      - "JSI_Redis__ConnectionString=redis,password=<your-redis-password>"
-    depends_on:
-      - redis
-  redis:
-    container_name: Redis
-    image: redis:alpine
-    environment:
-      - "REDIS_PASSWORD=<your-redis-password>"
+      - "JSI_Sqlite__Path=/app/data/justshortit.db"
     volumes:
-      - redis:/data
+      - jsi-data:/app/data
 
 volumes:
-  redis:
+  jsi-data:
 ```
 
 There you go, now your urls survive a restart!

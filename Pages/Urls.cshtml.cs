@@ -1,10 +1,10 @@
 using JustShortIt.Model;
+using JustShortIt.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Text.RegularExpressions;
 using System.Web;
-using Microsoft.Extensions.Caching.Distributed;
 
 namespace JustShortIt.Pages;
 
@@ -20,14 +20,15 @@ public partial class UrlsModel : PageModel
     private static partial Regex RegExGuid();
 
     private string BaseUrl { get; }
-    private IDistributedCache Db { get; }
+    private SqliteUrlStore Db { get; }
 
-    public UrlsModel(IConfiguration configuration, IDistributedCache db)
+    public UrlsModel(IConfiguration configuration, SqliteUrlStore db)
     {
 #if DEBUG
         BaseUrl = "https://localhost/";
 #else 
-        BaseUrl = new Uri(BaseUrl ?? throw new InvalidOperationException("BaseUrl not configured correctly."), UriKind.Absolute).ToString();
+        var configuredBaseUrl = configuration.GetValue<string>("BaseUrl");
+        BaseUrl = new Uri(configuredBaseUrl ?? throw new InvalidOperationException("BaseUrl not configured correctly."), UriKind.Absolute).ToString();
 #endif
         Db = db;
     }
@@ -41,7 +42,7 @@ public partial class UrlsModel : PageModel
             return Page();
         }
 
-        if (await Db.GetAsync(id) is not null) return RedirectToPage("Inspect", new { Id = id });
+        if (await Db.ExistsAsync(id)) return RedirectToPage("Inspect", new { Id = id });
 
         ModelState.AddModelError("Inspect_Id", "ID does not exist");
         return Page();
@@ -54,7 +55,7 @@ public partial class UrlsModel : PageModel
 
         var id = HttpUtility.UrlEncode(Model.Id);
 
-        if (await Db.GetAsync(id) is not null)
+        if (await Db.ExistsAsync(id))
         {
             Message = "This ID is already taken.";
             return Page();
@@ -66,10 +67,18 @@ public partial class UrlsModel : PageModel
             return Page();
         }
 
-        await Db.SetStringAsync(id, Model.Target, new DistributedCacheEntryOptions
+        if (long.TryParse(Model.ExpirationDate, out var expirationDateBinary) is false)
         {
-            AbsoluteExpiration = DateTime.FromBinary(long.Parse(Model.ExpirationDate))
-        });
+            Message = "Expiration date is not valid.";
+            return Page();
+        }
+
+        var expirationDate = DateTime.FromBinary(expirationDateBinary);
+        if (await Db.CreateAsync(id, Model.Target, expirationDate.ToUniversalTime()) is false)
+        {
+            Message = "This ID is already taken.";
+            return Page();
+        }
 
         ModelState.Clear();
         var generateNewId = await GenerateNewId();
@@ -100,7 +109,7 @@ public partial class UrlsModel : PageModel
             {
                 newId += t;
 
-                if (await Db.GetAsync(newId) is null) return newId;
+                if (await Db.ExistsAsync(newId) is false) return newId;
             }
         }
     }

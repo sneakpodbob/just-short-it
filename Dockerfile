@@ -18,4 +18,7 @@ RUN dotnet publish "JustShortIt.csproj" -c Release -o /app/publish /p:UseAppHost
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+RUN mkdir -p /app/data
+ENV JSI_Sqlite__Path=/app/data/justshortit.db
+VOLUME ["/app/data"]
 ENTRYPOINT ["dotnet", "JustShortIt.dll"]

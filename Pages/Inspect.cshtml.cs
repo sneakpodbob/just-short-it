@@ -1,8 +1,8 @@
 using JustShortIt.Model;
+using JustShortIt.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Extensions.Caching.Distributed;
 
 namespace JustShortIt.Pages; 
 
@@ -16,9 +16,9 @@ public class InspectModel : PageModel
 
     public UrlRedirect? UrlRedirect { get; set; }
     
-    private IDistributedCache Db { get; }
+    private SqliteUrlStore Db { get; }
 
-    public InspectModel(IDistributedCache db)
+    public InspectModel(SqliteUrlStore db)
     {
         Db = db;
     }
@@ -27,7 +27,7 @@ public class InspectModel : PageModel
     {
         if (Id == null) return await OnGet(null, "Delete request without ID, aborted.");
 
-        await Db.RemoveAsync(Id);
+        await Db.DeleteAsync(Id);
 
         return await OnGet(null, $"ID '{Id}' successfully deleted.");
     }
@@ -41,7 +41,7 @@ public class InspectModel : PageModel
 
         if (Id is null) return Page();
 
-        var url = await Db.GetStringAsync(Id);
+        var url = await Db.GetTargetAsync(Id);
         if (url is not null) UrlRedirect = new UrlRedirect(Id, url, string.Empty);
 
         return Page();

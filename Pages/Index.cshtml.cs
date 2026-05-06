@@ -1,20 +1,20 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Extensions.Caching.Distributed;
+using JustShortIt.Service;
 
 namespace JustShortIt.Pages;
 
 public class IndexModel : PageModel
 {
-    private IDistributedCache Db { get; set; }
+    private SqliteUrlStore Db { get; set; }
 
     // Bound property
     public string? Id { get; set; }
     public string? ErrorMessage { get; set; }
 
-    public IndexModel(IDistributedCache distributedCache)
+    public IndexModel(SqliteUrlStore db)
     {
-        Db = distributedCache;
+        Db = db;
     }
 
     public async Task<IActionResult> OnGetAsync(string? id)
@@ -23,7 +23,7 @@ public class IndexModel : PageModel
 
         if (Id is null) return Page();
 
-        var data = await Db.GetStringAsync(Id);
+        var data = await Db.GetTargetAsync(Id);
         if (data is not null) return Redirect(data);
 
         ErrorMessage = "Redirect ID not found, it may have been deleted or expired";
