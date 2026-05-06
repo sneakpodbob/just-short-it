@@ -5,6 +5,10 @@ namespace JustShortIt.Service;
 
 public class JustShortItDbContext : DbContext
 {
+    /// <summary>
+    /// Initializes the EF Core context used for short-link persistence.
+    /// </summary>
+    /// <param name="options">Configured options including provider, connection string, and runtime behaviors.</param>
     public JustShortItDbContext(DbContextOptions<JustShortItDbContext> options)
         : base(options)
     {
@@ -12,6 +16,10 @@ public class JustShortItDbContext : DbContext
 
     public DbSet<StoredUrlRedirect> Redirects => Set<StoredUrlRedirect>();
 
+    /// <summary>
+    /// Configures the database schema mapping for redirect entities.
+    /// </summary>
+    /// <param name="modelBuilder">Model builder used to define table, key, and column mappings.</param>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<StoredUrlRedirect>(entity =>

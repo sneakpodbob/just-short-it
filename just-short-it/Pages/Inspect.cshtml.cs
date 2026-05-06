@@ -18,11 +18,21 @@ public class InspectModel : PageModel
     
     private SqliteUrlStore Db { get; }
 
+    /// <summary>
+    /// Creates the inspect page model used to view and delete existing redirects.
+    /// </summary>
+    /// <param name="db">Redirect store used for lookup and deletion.</param>
     public InspectModel(SqliteUrlStore db)
     {
         Db = db;
     }
 
+    /// <summary>
+    /// Handles delete requests for the current ID.
+    /// </summary>
+    /// <returns>
+    /// The inspect page with a status message. If no ID is provided, returns a message indicating the delete was aborted.
+    /// </returns>
     public async Task<IActionResult> OnPostAsync()
     {
         if (Id == null) return await OnGet(null, "Delete request without ID, aborted.");
@@ -32,6 +42,14 @@ public class InspectModel : PageModel
         return await OnGet(null, $"ID '{Id}' successfully deleted.");
     }
 
+    /// <summary>
+    /// Renders the inspect view and loads redirect details when an ID is provided.
+    /// </summary>
+    /// <param name="id">Redirect ID to inspect.</param>
+    /// <param name="message">Optional status message to show in the UI.</param>
+    /// <returns>
+    /// Redirects to the management page when called without both ID and message; otherwise returns the inspect page.
+    /// </returns>
     public async Task<IActionResult> OnGet(string? id, string? message)
     {
         if (id is null && message is null) return RedirectToPage("Urls");

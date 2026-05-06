@@ -15,11 +15,24 @@ public class LoginModel : PageModel
 
     private AuthenticationService Authentication { get; }
 
+    /// <summary>
+    /// Creates the login page model.
+    /// </summary>
+    /// <param name="authentication">Credential validator for the configured application user.</param>
     public LoginModel(AuthenticationService authentication)
     {
         Authentication = authentication;
     }
 
+    /// <summary>
+    /// Processes credential submission and signs the user in with a cookie when valid.
+    /// </summary>
+    /// <returns>
+    /// Redirects to URL management after successful authentication; otherwise returns the login page with validation errors.
+    /// </returns>
+    /// <remarks>
+    /// Successful login issues a persistent authentication cookie with a one-day expiration.
+    /// </remarks>
     public async Task<IActionResult> OnPostAsync()
     {
         if (!ModelState.IsValid) return Page();
@@ -55,5 +68,9 @@ public class LoginModel : PageModel
         return Page();
     }
 
+    /// <summary>
+    /// Renders the login page.
+    /// </summary>
+    /// <returns>The login page.</returns>
     public IActionResult OnGet() => Page();
 }
