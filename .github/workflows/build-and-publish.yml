@@ -22,6 +22,15 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install frontend dependencies
+        working-directory: ./just-short-it
+        run: npm ci
+
       - name: Restore
         run: dotnet restore JustShortIt.slnx
 

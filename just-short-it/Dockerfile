@@ -7,6 +7,11 @@ EXPOSE 80
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY ["JustShortIt.csproj", "."]
+COPY ["package.json", "package-lock.json", "./"]
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends nodejs npm \
+	&& rm -rf /var/lib/apt/lists/*
+RUN npm ci
 RUN dotnet restore "./JustShortIt.csproj"
 COPY . .
 WORKDIR "/src/."
