@@ -5,6 +5,9 @@ namespace JustShortIt.Service;
 
 public class SqliteUrlStore
 {
+    private const string IdAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    private const int MaxIdLength = 16;
+
     private readonly JustShortItDbContext _dbContext;
 
     public SqliteUrlStore(JustShortItDbContext dbContext)
@@ -79,5 +82,49 @@ public class SqliteUrlStore
 
         _dbContext.Redirects.Remove(existingRedirect);
         await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task<string> GenerateNewId()
+    {
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        for (var length = 1; length <= MaxIdLength; length++)
+        {
+            var existingIds = await _dbContext.Redirects
+                .AsNoTracking()
+                .Where(x => x.ExpiresAtUtc > now && x.Id.Length == length)
+                .Select(x => x.Id)
+                .ToHashSetAsync();
+
+            // If a length is fully saturated, move on to the next one.
+            if (existingIds.Count >= Math.Pow(IdAlphabet.Length, length))
+            {
+                continue;
+            }
+
+            while (true)
+            {
+                var candidate = GenerateCandidate(length);
+
+                if (!existingIds.Contains(candidate))
+                {
+                    return candidate;
+                }
+            }
+        }
+
+        throw new InvalidOperationException("Unable to generate a unique ID.");
+    }
+
+    private static string GenerateCandidate(int length)
+    {
+        var chars = new char[length];
+
+        for (var index = 0; index < length; index++)
+        {
+            chars[index] = IdAlphabet[Random.Shared.Next(IdAlphabet.Length)];
+        }
+
+        return new string(chars);
     }
 }

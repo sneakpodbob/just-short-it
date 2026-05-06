@@ -19,18 +19,25 @@ if (!Path.IsPathRooted(databasePath))
     databasePath = Path.GetFullPath(databasePath, AppContext.BaseDirectory);
 }
 
-#if DEBUG
-const string baseUrl = "http://localhost/";
-var user = new User("test", "test");
-Console.Error.WriteLine("YOU ARE RUNNING A DEBUG BUILD WITH TEST CREDENTIALS, " +
-                        "DO NOT UNDER ANY CIRCUMSTANCES RUN THIS IN PRODUCTION, YOU HAVE BEEN WARNED.");
-#else
-var user = builder.Configuration.GetSection("Account").Get<User>();
-var baseUrl = builder.Configuration.GetValue<string>("BaseUrl");
-#endif
+string? baseUrl;
+User? user;
+
+if (builder.Environment.IsDevelopment())
+{
+    baseUrl = null; // Derived dynamically from each request at runtime
+    user = new User("test", "test");
+    Console.Error.WriteLine("YOU ARE RUNNING A DEVELOPMENT BUILD WITH TEST CREDENTIALS, " +
+                            "DO NOT UNDER ANY CIRCUMSTANCES RUN THIS IN PRODUCTION, YOU HAVE BEEN WARNED.");
+}
+else
+{
+    baseUrl = builder.Configuration.GetValue<string>("BaseUrl");
+    user = builder.Configuration.GetSection("Account").Get<User>();
+}
 
 // Check if everything is configured (right)
-if (string.IsNullOrEmpty(baseUrl) || !Uri.IsWellFormedUriString(baseUrl, UriKind.Absolute))
+if (!builder.Environment.IsDevelopment() &&
+    (string.IsNullOrEmpty(baseUrl) || !Uri.IsWellFormedUriString(baseUrl, UriKind.Absolute)))
 {
     throw new ApplicationException(
         "Base-URL is not set to a correct URL, please provide JSI_BaseUrl with a valid url.");

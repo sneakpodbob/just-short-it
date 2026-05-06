@@ -3,35 +3,33 @@ using JustShortIt.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Text.RegularExpressions;
 using System.Web;
 
 namespace JustShortIt.Pages;
 
 [Authorize]
-public partial class UrlsModel : PageModel
+public class UrlsModel : PageModel
 {
     [BindProperty]
     public UrlRedirect? Model { get; set; }
     [BindProperty(Name = "message")]
     public string? Message { get; set; }
 
-    [GeneratedRegex("[/+=]")]
-    private static partial Regex RegExGuid();
-
-    private string BaseUrl { get; }
+    private string? BaseUrl { get; }
     private SqliteUrlStore Db { get; }
 
-    public UrlsModel(IConfiguration configuration, SqliteUrlStore db)
+    public UrlsModel(IConfiguration configuration, IWebHostEnvironment env, SqliteUrlStore db)
     {
-#if DEBUG
-        BaseUrl = "https://localhost/";
-#else 
-        var configuredBaseUrl = configuration.GetValue<string>("BaseUrl");
-        BaseUrl = new Uri(configuredBaseUrl ?? throw new InvalidOperationException("BaseUrl not configured correctly."), UriKind.Absolute).ToString();
-#endif
+        if (!env.IsDevelopment())
+        {
+            var configuredBaseUrl = configuration.GetValue<string>("BaseUrl");
+            BaseUrl = new Uri(configuredBaseUrl ?? throw new InvalidOperationException("BaseUrl not configured correctly."), UriKind.Absolute).ToString();
+        }
         Db = db;
     }
+
+    private string GetEffectiveBaseUrl() =>
+        BaseUrl ?? $"{Request.Scheme}://{Request.Host}/";
 
     public async Task<IActionResult> OnPostInspectAsync()
     {
@@ -50,18 +48,11 @@ public partial class UrlsModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
-        if (!ModelState.IsValid) return Page();
-        if (Model is null) return Page();
+        if (!ModelState.IsValid || Model is null) return Page();
 
         var id = HttpUtility.UrlEncode(Model.Id);
 
-        if (await Db.ExistsAsync(id))
-        {
-            Message = "This ID is already taken.";
-            return Page();
-        }
-
-        if (!Uri.TryCreate($"{BaseUrl}{id}", UriKind.Absolute, out var link))
+        if (!Uri.TryCreate($"{GetEffectiveBaseUrl()}{id}", UriKind.Absolute, out var link))
         {
             Message = "This ID cannot be used in a URL.";
             return Page();
@@ -81,7 +72,7 @@ public partial class UrlsModel : PageModel
         }
 
         ModelState.Clear();
-        var generateNewId = await GenerateNewId();
+        var generateNewId = await Db.GenerateNewId();
         ModelState.SetModelValue(nameof(UrlRedirect.Id), generateNewId, generateNewId);
 
         Message = $"URL Generated! <a href='{link}'>{link}</a>. " +
@@ -92,25 +83,8 @@ public partial class UrlsModel : PageModel
     public async Task<IActionResult> OnGet(string message)
     {
         Message = message;
-        Model = new UrlRedirect(await GenerateNewId(), string.Empty, string.Empty);
+        Model = new UrlRedirect(await Db.GenerateNewId(), string.Empty, string.Empty);
         return Page();
     }
 
-    private async Task<string> GenerateNewId()
-    {
-        while (true)
-        {
-            var base64Guid = RegExGuid().Replace(Convert.ToBase64String(Guid.NewGuid().ToByteArray()), "");
-
-            var newId = string.Empty;
-            // loop from 1 to the length of base64Guid
-
-            foreach (var t in base64Guid[..16])
-            {
-                newId += t;
-
-                if (!await Db.ExistsAsync(newId)) return newId;
-            }
-        }
-    }
 }
