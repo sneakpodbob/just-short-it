@@ -128,7 +128,7 @@ app.Use(async (context, next) =>
     // Restrict referrer information
     headers["Referrer-Policy"] = "no-referrer";
     // Disable features the app never uses
-    headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()";
+    headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(), usb=()";
     // Cross-origin isolation
     headers["Cross-Origin-Opener-Policy"] = "same-origin";
     headers["Cross-Origin-Resource-Policy"] = "same-origin";
