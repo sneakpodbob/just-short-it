@@ -17,6 +17,8 @@ var salt = AnsiConsole.Prompt(
             ? ValidationResult.Error("Salt cannot be empty.")
             : ValidationResult.Success()));
 
+var bcryptSalt = BCrypt.Net.BCrypt.GenerateSalt(workFactor: 12);
+
 var password = AnsiConsole.Prompt(
     new TextPrompt<string>("Enter the [green]password[/]:")
         .Secret()
@@ -26,10 +28,22 @@ var password = AnsiConsole.Prompt(
             : ValidationResult.Success()));
 
 var saltedPassword = string.Concat(password, salt);
-var hash = BCrypt.Net.BCrypt.HashPassword(saltedPassword);
+
+var hash = BCrypt.Net.BCrypt.HashPassword(saltedPassword, bcryptSalt);
+
+var interogationResult = BCrypt.Net.BCrypt.InterrogateHash(hash);
+
+AnsiConsole.WriteLine($"Version: {interogationResult.Version}");
+AnsiConsole.WriteLine($"Work Factor: {interogationResult.WorkFactor}");
+AnsiConsole.WriteLine($"$Settings: {interogationResult.Settings ?? "null"}");
+
+var verify = BCrypt.Net.BCrypt.Verify(saltedPassword, hash);
+AnsiConsole.WriteLine($"Verification of password + salt against hash: {(verify ? "[green]Success[/]" : "[red]Failure[/]")}");
 
 AnsiConsole.WriteLine();
 AnsiConsole.MarkupLine("[bold]BCrypt hash (password + salt):[/]");
 AnsiConsole.WriteLine(hash);
 AnsiConsole.WriteLine();
+AnsiConsole.MarkupLine("[bold]BCrypt salt:[/]");
+AnsiConsole.WriteLine(salt);
 AnsiConsole.MarkupLine("Done. Keep this hash safe and use it with your app configuration.");

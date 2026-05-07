@@ -93,6 +93,19 @@ try
             "Credentials not set, please provide JSI_Account__Username, JSI_Account__PasswordHash and JSI_Account__PasswordSalt.");
     }
 
+    try
+    {
+        var result = BCrypt.Net.BCrypt.InterrogateHash(account.PasswordHash);
+        Log.Information("Password hash interrogation successful. Version: {Version}, Work Factor: {WorkFactor}, Settings: {Settings}",
+            result.Version, result.WorkFactor, result.Settings ?? "null");
+    }
+    catch (Exception ex)
+    {
+        Log.Fatal(ex, "Startup validation failed: JSI_Account__PasswordHash is not a valid BCrypt hash.");
+        throw new ApplicationException(
+            "JSI_Account__PasswordHash is not a valid BCrypt hash. Generate one using the Tools/CreateHash utility.");
+    }
+
     // Set up SQLite persistence
     Directory.CreateDirectory(Path.GetDirectoryName(databasePath) ?? AppContext.BaseDirectory);
     builder.Services.AddDbContext<JustShortItDbContext>(options => options.UseSqlite($"Data Source={databasePath}"));
