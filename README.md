@@ -160,9 +160,15 @@ Hinweise:
 ### Um Just Short It einfach in einem Container zu starten
 
 ```bash
-docker run -p 8081:8081 -e JSI_BaseUrl=<deine-url> \
+docker run -p 8081:8081 \
+           -e JSI_BaseUrl=<deine-url> \
            -e JSI_Account__Username=<dein-benutzername> \
            -e JSI_Account__Password=<dein-passwort> \
+           --health-cmd='curl -f http://localhost:8081/health/ready || exit 1' \
+           --health-interval=30s \
+           --health-timeout=5s \
+           --health-retries=3 \
+           --health-start-period=15s \
            sneakpodbob/just-short-it:latest
 ```
 
@@ -183,6 +189,12 @@ services:
       - "JSI_BaseUrl=<deine-url>"
       - "JSI_Account__Username=<dein-benutzername>"
       - "JSI_Account__Password=<dein-passwort>"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health/ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 ```
 
 ### SQLite-Persistenz
@@ -212,6 +224,12 @@ services:
       - "JSI_Sqlite__Path=/app/data/justshortit.db"
     volumes:
       - jsi-data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health/ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
 volumes:
   jsi-data:
@@ -224,6 +242,8 @@ Die App ist auf Betrieb hinter einem Reverse Proxy ausgelegt:
 - verarbeitet `X-Forwarded-For`, `X-Forwarded-Proto` und `X-Forwarded-Host`
 - vertraut auf einen Proxy-Hop (`ForwardLimit = 1`)
 - TLS-Terminierung soll am Proxy erfolgen (z. B. NGINX, Traefik, Caddy)
+
+Die Health-Check-Endpunkte (`/health/live`, `/health/ready`) geben diagnostische Details wie die Anzahl gespeicherter Redirects und freien Speicherplatz zurück und sollten daher nicht öffentlich zugänglich sein. Es wird empfohlen, am Reverse Proxy den Zugriff auf `/health/` auf interne IPs und Monitoring-Systeme zu beschränken und alle anderen Anfragen zu blockieren. Der Docker-Health-Check läuft direkt im Container und umgeht den Proxy, sodass er davon nicht beeinträchtigt wird.
 
 ### Sicherheits-Hinweise
 
@@ -365,9 +385,15 @@ Notes:
 ### To simply run Just Short It in a container
 
 ```bash
-docker run -p 8081:8081 -e JSI_BaseUrl=<your-url> \
+docker run -p 8081:8081 \
+           -e JSI_BaseUrl=<your-url> \
            -e JSI_Account__Username=<your-username> \
            -e JSI_Account__Password=<your-password> \
+           --health-cmd='curl -f http://localhost:8081/health/ready || exit 1' \
+           --health-interval=30s \
+           --health-timeout=5s \
+           --health-retries=3 \
+           --health-start-period=15s \
            sneakpodbob/just-short-it:latest
 ```
 
@@ -388,6 +414,12 @@ services:
       - "JSI_BaseUrl=<your-url>"
       - "JSI_Account__Username=<your-username>"
       - "JSI_Account__Password=<your-password>"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health/ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 ```
 
 ### SQLite persistence
@@ -418,6 +450,12 @@ services:
       - "JSI_Sqlite__Path=/app/data/justshortit.db"
     volumes:
       - jsi-data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health/ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
 volumes:
   jsi-data:
@@ -430,6 +468,8 @@ The app is designed to run behind a reverse proxy:
 - handles `X-Forwarded-For`, `X-Forwarded-Proto`, and `X-Forwarded-Host`
 - trusts one proxy hop (`ForwardLimit = 1`)
 - expects TLS termination at the proxy (for example NGINX, Traefik, Caddy)
+
+The health check endpoints (`/health/live`, `/health/ready`) return diagnostic details such as the stored redirect count and available disk space, so they should not be publicly reachable. It is recommended to restrict access to `/health/` at the reverse proxy to internal IPs and monitoring systems, and deny all other requests. The Docker health check runs directly inside the container and bypasses the proxy, so it is unaffected by this restriction.
 
 ### Security notes
 

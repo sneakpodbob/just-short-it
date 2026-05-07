@@ -1,13 +1,17 @@
 using JustShortIt.Model;
 using JustShortIt.Model.Dto;
 using JustShortIt.Service;
+using JustShortIt.Service.HealthChecks;
 using Coravel;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Serilog;
 using Serilog.Events;
 using System.Security.Cryptography;
+using System.Text.Json;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -107,6 +111,10 @@ try
         options.Cookie.SecurePolicy = securePolicy;
     });
 
+    builder.Services.AddHealthChecks()
+        .AddCheck<SqliteHealthCheck>("sqlite", tags: ["ready"])
+        .AddCheck<DiskSpaceHealthCheck>("disk-space", tags: ["live", "ready"]);
+
     builder.Services.Configure<ForwardedHeadersOptions>(options =>
     {
         options.ForwardedHeaders = ForwardedHeaders.XForwardedFor |
@@ -204,6 +212,36 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapRazorPages();
+
+    // Liveness probe — only checks that the process is alive and has disk space.
+    // Safe to use as a Kubernetes livenessProbe; never causes a restart due to
+    // a transient database issue.
+    app.MapHealthChecks("/health/live", new HealthCheckOptions
+    {
+        Predicate = check => check.Tags.Contains("live"),
+        ResultStatusCodes =
+        {
+            [HealthStatus.Healthy] = StatusCodes.Status200OK,
+            [HealthStatus.Degraded] = StatusCodes.Status200OK,
+            [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable
+        }
+    });
+
+    // Readiness probe — checks all dependencies needed to serve traffic.
+    // Use as a Kubernetes readinessProbe so the pod leaves the load-balancer
+    // rotation until the database is available.
+    app.MapHealthChecks("/health/ready", new HealthCheckOptions
+    {
+        Predicate = check => check.Tags.Contains("ready"),
+        ResponseWriter = WriteHealthCheckResponse,
+        ResultStatusCodes =
+        {
+            [HealthStatus.Healthy] = StatusCodes.Status200OK,
+            [HealthStatus.Degraded] = StatusCodes.Status200OK,
+            [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable
+        }
+    });
+
     app.Run();
 }
 catch (Exception ex)
@@ -214,5 +252,34 @@ catch (Exception ex)
 finally
 {
     Log.CloseAndFlush();
+}
+
+return;
+
+static Task WriteHealthCheckResponse(HttpContext context, HealthReport report)
+{
+    context.Response.ContentType = "application/json";
+
+    var response = new
+    {
+        status = report.Status.ToString(),
+        duration_ms = report.TotalDuration.TotalMilliseconds,
+        checks = report.Entries.Select(e => new
+        {
+            name = e.Key,
+            status = e.Value.Status.ToString(),
+            description = e.Value.Description,
+            duration_ms = e.Value.Duration.TotalMilliseconds,
+            data = e.Value.Data,
+            exception = e.Value.Exception?.Message
+        })
+    };
+
+    return context.Response.WriteAsync(
+        JsonSerializer.Serialize(response, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+        }));
 }
 
