@@ -9,7 +9,7 @@ namespace JustShortIt.Pages;
 [Authorize]
 public class RedirectsModel : PageModel
 {
-    public IReadOnlyList<StoredUrlRedirect> Redirects { get; private set; } = [];
+    public IReadOnlyList<RedirectListItem> Redirects { get; private set; } = [];
 
     private SqliteUrlStore Db { get; }
     private readonly ILogger<RedirectsModel> _logger;
@@ -22,7 +22,12 @@ public class RedirectsModel : PageModel
 
     public async Task OnGetAsync()
     {
-        Redirects = await Db.GetAllAsync();
+        var redirects = await Db.GetAllAsync();
+        var clickCounts = await Db.GetClickCountsForActiveRedirectsAsync();
+
+        Redirects = redirects
+            .Select(x => new RedirectListItem(x, clickCounts.GetValueOrDefault(x.Id, 0)))
+            .ToList();
     }
 
     public async Task<IActionResult> OnPostDeleteAsync(string id)
@@ -31,4 +36,6 @@ public class RedirectsModel : PageModel
         _logger.LogInformation("Redirect {RedirectId} deleted from redirects management page.", id);
         return RedirectToPage();
     }
+
+    public record RedirectListItem(StoredUrlRedirect Redirect, long ClickCount);
 }

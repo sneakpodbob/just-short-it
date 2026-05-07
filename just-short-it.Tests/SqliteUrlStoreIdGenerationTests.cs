@@ -43,7 +43,8 @@ public class SqliteUrlStoreIdGenerationTests
             {
                 Id = c.ToString(),
                 Target = "https://example.test",
-                ExpiresAtUtc = now + 3600
+                ExpiresAtUtc = now + 3600,
+                CreatedAtUtc = now - 60
             });
         }
 
@@ -71,7 +72,8 @@ public class SqliteUrlStoreIdGenerationTests
             {
                 Id = c.ToString(),
                 Target = "https://example.test",
-                ExpiresAtUtc = now + 3600
+                ExpiresAtUtc = now + 3600,
+                CreatedAtUtc = now - 60
             });
         }
 
@@ -100,7 +102,8 @@ public class SqliteUrlStoreIdGenerationTests
             {
                 Id = c.ToString(),
                 Target = "https://example.test",
-                ExpiresAtUtc = now + 3600
+                ExpiresAtUtc = now + 3600,
+                CreatedAtUtc = now - 60
             });
         }
 
@@ -108,7 +111,8 @@ public class SqliteUrlStoreIdGenerationTests
         {
             Id = "Q",
             Target = "https://expired.test",
-            ExpiresAtUtc = now - 10
+            ExpiresAtUtc = now - 10,
+            CreatedAtUtc = now - 7200
         });
 
         dbContext.BlockedRedirectIds.Add(new BlockedRedirectId
@@ -141,7 +145,8 @@ public class SqliteUrlStoreIdGenerationTests
             {
                 Id = c.ToString(),
                 Target = "https://example.test",
-                ExpiresAtUtc = now + 3600
+                ExpiresAtUtc = now + 3600,
+                CreatedAtUtc = now - 60
             });
         }
 
@@ -149,7 +154,8 @@ public class SqliteUrlStoreIdGenerationTests
         {
             Id = "Q",
             Target = "https://expired.test",
-            ExpiresAtUtc = now - 10
+            ExpiresAtUtc = now - 10,
+            CreatedAtUtc = now - 7200
         });
 
         dbContext.BlockedRedirectIds.Add(new BlockedRedirectId
@@ -179,7 +185,8 @@ public class SqliteUrlStoreIdGenerationTests
         {
             Id = "abc",
             Target = "https://expired.test",
-            ExpiresAtUtc = now - 10
+            ExpiresAtUtc = now - 10,
+            CreatedAtUtc = now - 7200
         });
 
         dbContext.BlockedRedirectIds.Add(new BlockedRedirectId
@@ -240,7 +247,8 @@ public class SqliteUrlStoreIdGenerationTests
             {
                 Id = c.ToString(),
                 Target = "https://example.test",
-                ExpiresAtUtc = now + 3600
+                ExpiresAtUtc = now + 3600,
+                CreatedAtUtc = now - 60
             });
         }
 

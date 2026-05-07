@@ -15,6 +15,7 @@ public class JustShortItDbContext : DbContext
     }
 
     public DbSet<BlockedRedirectId> BlockedRedirectIds => Set<BlockedRedirectId>();
+    public DbSet<RedirectClickEvent> RedirectClickEvents => Set<RedirectClickEvent>();
     public DbSet<StoredUrlRedirect> Redirects => Set<StoredUrlRedirect>();
 
     /// <summary>
@@ -41,6 +42,16 @@ public class JustShortItDbContext : DbContext
             entity.Property(x => x.ExpiresAtUtc)
                 .HasColumnName("expires_at_utc")
                 .IsRequired();
+
+            entity.Property(x => x.CreatedAtUtc)
+                .HasColumnName("created_at_utc")
+                .HasDefaultValueSql("unixepoch('now')")
+                .IsRequired();
+
+            entity.HasMany(x => x.ClickEvents)
+                .WithOne(x => x.Redirect)
+                .HasForeignKey(x => x.RedirectId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<BlockedRedirectId>(entity =>
@@ -57,6 +68,31 @@ public class JustShortItDbContext : DbContext
             entity.Property(x => x.ExpiresAtUtc)
                 .HasColumnName("expires_at_utc")
                 .IsRequired();
+        });
+
+        modelBuilder.Entity<RedirectClickEvent>(entity =>
+        {
+            entity.ToTable("redirect_click_events");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Id)
+                .HasColumnName("id")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.RedirectId)
+                .HasColumnName("redirect_id")
+                .IsRequired();
+
+            entity.Property(x => x.ClickedAtUtc)
+                .HasColumnName("clicked_at_utc")
+                .IsRequired();
+
+            entity.Property(x => x.Referrer)
+                .HasColumnName("referrer");
+
+            entity.HasIndex(x => new { x.RedirectId, x.ClickedAtUtc })
+                .HasDatabaseName("IX_redirect_click_events_redirect_id_clicked_at_utc")
+                .IsDescending(false, true);
         });
     }
 }

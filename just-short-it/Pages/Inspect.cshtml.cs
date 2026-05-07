@@ -1,4 +1,5 @@
 using JustShortIt.Model.Dto;
+using Humanizer;
 using JustShortIt.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +10,8 @@ namespace JustShortIt.Pages;
 [Authorize]
 public class InspectModel : PageModel
 {
+    private const int InspectClickHistoryRows = 500;
+
     [BindProperty(Name = "id", SupportsGet = true)]
     public string? Id { get; set; } = string.Empty;
     [BindProperty(Name="message")]
@@ -17,6 +20,8 @@ public class InspectModel : PageModel
     public string? ReturnTo { get; set; }
 
     public UrlRedirect? UrlRedirect { get; set; }
+    public RedirectInspectDetails? RedirectDetails { get; set; }
+    public IReadOnlyList<ClickEventItem> ClickEvents { get; set; } = [];
     
     private SqliteUrlStore Db { get; }
     private readonly ILogger<InspectModel> _logger;
@@ -71,10 +76,33 @@ public class InspectModel : PageModel
 
         if (Id is null) return Page();
 
-        var url = await Db.GetTargetAsync(Id);
-        if (url is not null)
+        var redirect = await Db.GetRedirectAsync(Id);
+        if (redirect is not null)
         {
-            UrlRedirect = new UrlRedirect(Id, url, string.Empty);
+            UrlRedirect = new UrlRedirect(Id, redirect.Target, string.Empty);
+
+            var clickCount = await Db.GetClickCountAsync(Id);
+            var clickEvents = await Db.GetClickEventsAsync(Id, InspectClickHistoryRows);
+            var nowUtc = DateTimeOffset.UtcNow;
+            var ageSeconds = nowUtc.ToUnixTimeSeconds() - redirect.CreatedAtUtc;
+            var ageDays = Math.Max(ageSeconds / 86400d, 1d);
+            var clicksPerDay = clickCount / ageDays;
+            var expiresAtUtc = DateTimeOffset.FromUnixTimeSeconds(redirect.ExpiresAtUtc);
+            var validFor = GetHumanReadableValidFor(expiresAtUtc, nowUtc);
+
+            RedirectDetails = new RedirectInspectDetails(
+                DateTimeOffset.FromUnixTimeSeconds(redirect.CreatedAtUtc).UtcDateTime,
+                expiresAtUtc.UtcDateTime,
+                validFor,
+                clickCount,
+                clicksPerDay);
+
+            ClickEvents = clickEvents
+                .Select(x => new ClickEventItem(
+                    DateTimeOffset.FromUnixTimeSeconds(x.ClickedAtUtc).UtcDateTime,
+                    string.IsNullOrWhiteSpace(x.Referrer) ? null : x.Referrer))
+                .ToList();
+
             _logger.LogInformation("Inspect lookup found redirect ID {RedirectId}.", Id);
         }
         else
@@ -84,4 +112,28 @@ public class InspectModel : PageModel
 
         return Page();
     }
+
+    private static string GetHumanReadableValidFor(DateTimeOffset expiresAtUtc, DateTimeOffset nowUtc)
+    {
+        if (expiresAtUtc > nowUtc.AddYears(100))
+        {
+            return "Never";
+        }
+
+        if (expiresAtUtc <= nowUtc)
+        {
+            return "Expired";
+        }
+
+        return (expiresAtUtc - nowUtc).Humanize(precision: 2);
+    }
+
+    public record RedirectInspectDetails(
+        DateTime CreatedAtUtc,
+        DateTime ExpiresAtUtc,
+        string ValidFor,
+        long ClickCount,
+        double ClicksPerDay);
+
+    public record ClickEventItem(DateTime ClickedAtUtc, string? Referrer);
 }

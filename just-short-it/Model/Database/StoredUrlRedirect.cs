@@ -20,4 +20,9 @@ public class StoredUrlRedirect
 
     [Required]
     public required long ExpiresAtUtc { get; set; }
+
+    [Required]
+    public required long CreatedAtUtc { get; set; }
+
+    public ICollection<RedirectClickEvent> ClickEvents { get; init; } = [];
 }

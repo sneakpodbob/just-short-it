@@ -93,26 +93,3 @@
     </div>
 </div>
 
-@{
-    var cspNonce = HttpContext.Items["CspNonce"]?.ToString();
-}
-
-@section Scripts
-{
-    @if (!string.IsNullOrWhiteSpace(Model.GeneratedLink) && !string.IsNullOrWhiteSpace(cspNonce))
-    {
-        <script nonce="@cspNonce">
-            document.addEventListener('click', function (e) {
-                var copyButton = e.target.closest('[data-copy-url]');
-                if (!copyButton) {
-                    return;
-                }
-
-                var value = copyButton.getAttribute('data-copy-url');
-                if (value) {
-                    navigator.clipboard.writeText(value);
-                }
-            });
-        </script>
-    }
-}

@@ -114,7 +114,8 @@ public class SqliteUrlStore
             {
                 Id = id,
                 Target = target,
-                ExpiresAtUtc = expiration
+                ExpiresAtUtc = expiration,
+                CreatedAtUtc = now
             });
         }
 
@@ -189,6 +190,76 @@ public class SqliteUrlStore
 
         await _dbContext.SaveChangesAsync();
         _logger.LogInformation("Deleted redirect {RedirectId}.", id);
+    }
+
+    /// <summary>
+    /// Persists a click event for an existing redirect ID.
+    /// </summary>
+    /// <param name="redirectId">Resolved redirect ID.</param>
+    /// <param name="referrer">Optional referrer URL from request headers.</param>
+    /// <param name="clickedAtUtc">UTC click timestamp represented as unix seconds.</param>
+    public async Task LogRedirectClickAsync(string redirectId, string? referrer, long clickedAtUtc)
+    {
+        _dbContext.RedirectClickEvents.Add(new RedirectClickEvent
+        {
+            RedirectId = redirectId,
+            ClickedAtUtc = clickedAtUtc,
+            Referrer = referrer
+        });
+
+        await _dbContext.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Returns the total number of click events stored for a redirect.
+    /// </summary>
+    /// <param name="redirectId">Redirect ID to count events for.</param>
+    public Task<long> GetClickCountAsync(string redirectId)
+    {
+        return _dbContext.RedirectClickEvents
+            .AsNoTracking()
+            .LongCountAsync(x => x.RedirectId == redirectId);
+    }
+
+    /// <summary>
+    /// Returns click events for a redirect ordered by newest first.
+    /// </summary>
+    /// <param name="redirectId">Redirect ID to inspect.</param>
+    /// <param name="maxRows">Maximum number of rows returned.</param>
+    public async Task<IReadOnlyList<RedirectClickEvent>> GetClickEventsAsync(string redirectId, int maxRows = 500)
+    {
+        return await _dbContext.RedirectClickEvents
+            .AsNoTracking()
+            .Where(x => x.RedirectId == redirectId)
+            .OrderByDescending(x => x.ClickedAtUtc)
+            .Take(maxRows)
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// Returns click counts grouped by redirect ID for currently active redirects only.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<string, long>> GetClickCountsForActiveRedirectsAsync()
+    {
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        return await _dbContext.RedirectClickEvents
+            .AsNoTracking()
+            .Where(click => _dbContext.Redirects.Any(redirect => redirect.Id == click.RedirectId && redirect.ExpiresAtUtc > now))
+            .GroupBy(x => x.RedirectId)
+            .Select(x => new { RedirectId = x.Key, Count = x.LongCount() })
+            .ToDictionaryAsync(x => x.RedirectId, x => x.Count);
+    }
+
+    /// <summary>
+    /// Returns a redirect by ID including metadata required for inspect views.
+    /// </summary>
+    /// <param name="id">Redirect ID to retrieve.</param>
+    public async Task<StoredUrlRedirect?> GetRedirectAsync(string id)
+    {
+        return await _dbContext.Redirects
+            .AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == id);
     }
 
     /// <summary>

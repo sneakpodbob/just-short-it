@@ -25,12 +25,80 @@
 else
 {
     <div class="column is-half-desktop is-two-thirds-tablet is-full-mobile">
+        @{ 
+            var details = Model.RedirectDetails;
+            var expiresAt = details?.ExpiresAtUtc ?? DateTime.UtcNow;
+            var isNeverExpiring = expiresAt > DateTime.UtcNow.AddYears(100);
+        }
+
         <dl class="mb-5">
             <dt class="is-size-7 has-text-grey has-text-weight-semibold is-uppercase jsi-dt">ID</dt>
             <dd class="is-size-5 has-text-weight-medium mb-4"><code>@Model.UrlRedirect.Id</code></dd>
             <dt class="is-size-7 has-text-grey has-text-weight-semibold is-uppercase jsi-dt">URL-Target</dt>
-            <dd class="is-size-5 has-text-weight-medium jsi-dd-url">@Model.UrlRedirect.Target</dd>
+            <dd class="is-size-5 has-text-weight-medium mb-4 jsi-dd-url">@Model.UrlRedirect.Target</dd>
+            <dt class="is-size-7 has-text-grey has-text-weight-semibold is-uppercase jsi-dt">Created</dt>
+            <dd class="mb-2">
+                @if (details is null)
+                {
+                    <span>-</span>
+                }
+                else
+                {
+                    <time datetime="@details.CreatedAtUtc.ToString("o")">@details.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm:ss") UTC</time>
+                }
+            </dd>
+            <dt class="is-size-7 has-text-grey has-text-weight-semibold is-uppercase jsi-dt">Expires</dt>
+            <dd class="mb-2">
+                @if (details is null)
+                {
+                    <span>-</span>
+                }
+                else if (isNeverExpiring)
+                {
+                    <span>Never</span>
+                }
+                else
+                {
+                    <time datetime="@details.ExpiresAtUtc.ToString("o")">@details.ExpiresAtUtc.ToString("yyyy-MM-dd HH:mm:ss") UTC</time>
+                }
+            </dd>
+            <dt class="is-size-7 has-text-grey has-text-weight-semibold is-uppercase jsi-dt">Valid For</dt>
+            <dd class="mb-2">@(details?.ValidFor ?? "-")</dd>
+            <dt class="is-size-7 has-text-grey has-text-weight-semibold is-uppercase jsi-dt">Clicks</dt>
+            <dd class="mb-2">@(details?.ClickCount ?? 0)</dd>
+            <dt class="is-size-7 has-text-grey has-text-weight-semibold is-uppercase jsi-dt">Clicks/Day</dt>
+            <dd class="mb-2">@((details?.ClicksPerDay ?? 0).ToString("0.00"))</dd>
         </dl>
+
+        <h3 class="title is-5 mt-5">Click History</h3>
+        @if (!Model.ClickEvents.Any())
+        {
+            <p class="has-text-grey">No click events recorded yet.</p>
+        }
+        else
+        {
+            <div class="table-container">
+                <table class="table is-fullwidth is-striped is-hoverable">
+                    <thead>
+                    <tr>
+                        <th>Clicked At (UTC)</th>
+                        <th>Referrer</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var click in Model.ClickEvents)
+                    {
+                        <tr>
+                            <td>
+                                <time datetime="@click.ClickedAtUtc.ToString("o")">@click.ClickedAtUtc.ToString("yyyy-MM-dd HH:mm:ss") UTC</time>
+                            </td>
+                            <td class="jsi-td-truncate" title="@(click.Referrer ?? "-")">@(click.Referrer ?? "-")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
         
         <form class="buttons" method="post">
             <input type="hidden" asp-for="Id" />

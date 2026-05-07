@@ -40,6 +40,18 @@ public class IndexModel : PageModel
         var data = await Db.GetTargetAsync(Id);
         if (data is not null)
         {
+            var clickedAtUtc = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            var referrer = string.IsNullOrWhiteSpace(Request.Headers.Referer) ? null : Request.Headers.Referer.ToString();
+
+            try
+            {
+                await Db.LogRedirectClickAsync(Id, referrer, clickedAtUtc);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to log click event for redirect ID {RedirectId}; redirecting anyway.", Id);
+            }
+
             _logger.LogInformation("Redirect hit for ID {RedirectId}.", Id);
             return Redirect(data);
         }
