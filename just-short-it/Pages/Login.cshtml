@@ -23,7 +23,9 @@
             </div>
             <span class="help is-danger" asp-validation-for="UserModel!.Password"></span>
         </div>
-
+        
+        @* These classes are from Bulma, but ReSharper doesn't know about them, so we disable the warning for this file.*@
+        @* ReSharper disable once UnknownCssClass *@
         <div class="has-text-danger" asp-validation-summary="ModelOnly" class="text-danger"></div>
 
         <div class="field is-grouped is-grouped-right">

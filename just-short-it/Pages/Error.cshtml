@@ -4,8 +4,11 @@
     ViewData["Title"] = "Error";
 }
 
+@* These classes are from Bulma, but ReSharper doesn't know about them, so we disable the warning for this file. *@
+@* ReSharper disable UnknownCssClass *@ 
 <h1 class="text-danger">Error.</h1>
 <h2 class="text-danger">An error occurred while processing your request.</h2>
+@* ReSharper restore UnknownCssClass *@
 
 @if (Model.ShowRequestId)
 {
