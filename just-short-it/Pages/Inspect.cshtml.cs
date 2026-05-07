@@ -57,6 +57,7 @@ public class InspectModel : PageModel
     /// </summary>
     /// <param name="id">Redirect ID to inspect.</param>
     /// <param name="message">Optional status message to show in the UI.</param>
+    /// <param name="returnTo">Where to return when back button is pressed.</param>
     /// <returns>
     /// Redirects to the management page when called without both ID and message; otherwise returns the inspect page.
     /// </returns>
