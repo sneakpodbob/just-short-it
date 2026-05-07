@@ -25,20 +25,28 @@
 else
 {
     <div class="column is-half-desktop is-two-thirds-tablet is-full-mobile">
-        <dl class="">
-            <dt>ID</dt>
-            <dd>@Model.UrlRedirect.Id</dd>
-            <dt>URL-Target</dt>
-            <dd>@Model.UrlRedirect.Target</dd>
+        <dl class="mb-5">
+            <dt class="is-size-7 has-text-grey has-text-weight-semibold is-uppercase jsi-dt">ID</dt>
+            <dd class="is-size-5 has-text-weight-medium mb-4"><code>@Model.UrlRedirect.Id</code></dd>
+            <dt class="is-size-7 has-text-grey has-text-weight-semibold is-uppercase jsi-dt">URL-Target</dt>
+            <dd class="is-size-5 has-text-weight-medium jsi-dd-url">@Model.UrlRedirect.Target</dd>
         </dl>
         
         <form class="buttons" method="post">
             <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="ReturnTo" />
             <button type="submit" class="button is-danger">Delete</button>
         </form>
     </div>
 }
     <div class="column is-full has-text-centered">
-        <a class="button is-primary is-medium" asp-page="Urls">Back to URLs</a>
+        @if (Model.ReturnTo == "redirects")
+        {
+            <a class="button is-primary is-medium" asp-page="Redirects">Back to Redirects</a>
+        }
+        else
+        {
+            <a class="button is-primary is-medium" asp-page="Urls">Back to URLs</a>
+        }
     </div>
 </div>

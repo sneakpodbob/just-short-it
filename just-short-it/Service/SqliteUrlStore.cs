@@ -192,6 +192,20 @@ public class SqliteUrlStore
     }
 
     /// <summary>
+    /// Returns all active (non-expired) redirects ordered by ID.
+    /// </summary>
+    public async Task<IReadOnlyList<StoredUrlRedirect>> GetAllAsync()
+    {
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        return await _dbContext.Redirects
+            .AsNoTracking()
+            .Where(x => x.ExpiresAtUtc > now)
+            .OrderBy(x => x.Id)
+            .ToListAsync();
+    }
+
+    /// <summary>
     /// Generates a short ID that is currently unused by active redirects.
     /// </summary>
     /// <returns>A unique ID composed of characters from the internal alphabet.</returns>

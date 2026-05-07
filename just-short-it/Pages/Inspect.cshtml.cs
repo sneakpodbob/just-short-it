@@ -13,6 +13,8 @@ public class InspectModel : PageModel
     public string? Id { get; set; } = string.Empty;
     [BindProperty(Name="message")]
     public string? Message { get; set; }
+    [BindProperty(Name = "returnTo", SupportsGet = true)]
+    public string? ReturnTo { get; set; }
 
     public UrlRedirect? UrlRedirect { get; set; }
     
@@ -47,7 +49,7 @@ public class InspectModel : PageModel
         await Db.DeleteAsync(Id);
         _logger.LogInformation("Inspect delete request completed for ID {RedirectId}.", Id);
 
-        return await OnGet(null, $"ID '{Id}' successfully deleted.");
+        return await OnGet(null, $"ID '{Id}' successfully deleted.", ReturnTo);
     }
 
     /// <summary>
@@ -58,12 +60,13 @@ public class InspectModel : PageModel
     /// <returns>
     /// Redirects to the management page when called without both ID and message; otherwise returns the inspect page.
     /// </returns>
-    public async Task<IActionResult> OnGet(string? id, string? message)
+    public async Task<IActionResult> OnGet(string? id, string? message, string? returnTo = null)
     {
         if (id is null && message is null) return RedirectToPage("Urls");
         
         Id = id;
         Message = message;
+        ReturnTo = returnTo;
 
         if (Id is null) return Page();
 
