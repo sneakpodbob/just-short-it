@@ -191,7 +191,7 @@ public class SqliteUrlStoreClickTrackingTests
             DbContext = dbContext;
         }
 
-        public SqliteConnection Connection { get; }
+        private SqliteConnection Connection { get; }
         public JustShortItDbContext DbContext { get; }
 
         public static async Task<SqliteFixture> CreateAsync()

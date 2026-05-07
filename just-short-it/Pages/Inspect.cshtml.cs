@@ -31,8 +31,10 @@ public class InspectModel : PageModel
     /// <summary>
     /// Creates the inspect page model used to view and delete existing redirects.
     /// </summary>
+    /// <param name="env">The web host environment.</param>
     /// <param name="db">Redirect store used for lookup and deletion.</param>
     /// <param name="logger">Logger used to record inspect lookups and delete operations.</param>
+    /// <param name="configuration">Configurations for the app</param>
     public InspectModel(IConfiguration configuration, IWebHostEnvironment env, SqliteUrlStore db, ILogger<InspectModel> logger)
     {
         if (!env.IsDevelopment())
@@ -136,12 +138,9 @@ public class InspectModel : PageModel
             return "Never";
         }
 
-        if (expiresAtUtc <= nowUtc)
-        {
-            return "Expired";
-        }
-
-        return (expiresAtUtc - nowUtc).Humanize(precision: 2);
+        return expiresAtUtc <= nowUtc
+            ? "Expired"
+            : (expiresAtUtc - nowUtc).Humanize(precision: 2);
     }
 
     public record RedirectInspectDetails(

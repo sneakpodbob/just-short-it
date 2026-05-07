@@ -64,14 +64,13 @@ public sealed class DiskSpaceHealthCheck : IHealthCheck
             ["drive"] = pathRoot
         };
 
-        if (freeMb < UnhealthyThresholdMb)
-            return Task.FromResult(HealthCheckResult.Unhealthy(
-                $"Critical disk space: {freeMb} MB free on '{pathRoot}'.", data: data));
-
-        if (freeMb < DegradedThresholdMb)
-            return Task.FromResult(HealthCheckResult.Degraded(
-                $"Low disk space: {freeMb} MB free on '{pathRoot}'.", data: data));
-
-        return Task.FromResult(HealthCheckResult.Healthy(data: data));
+        return freeMb switch
+        {
+            < UnhealthyThresholdMb => Task.FromResult(HealthCheckResult.Unhealthy(
+                $"Critical disk space: {freeMb} MB free on '{pathRoot}'.", data: data)),
+            < DegradedThresholdMb => Task.FromResult(HealthCheckResult.Degraded(
+                $"Low disk space: {freeMb} MB free on '{pathRoot}'.", data: data)),
+            _ => Task.FromResult(HealthCheckResult.Healthy(data: data))
+        };
     }
 }

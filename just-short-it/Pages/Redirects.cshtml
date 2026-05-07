@@ -28,9 +28,8 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var redirectRow in Model.Redirects)
+                        @foreach (var (redirect, clickCount, redirectLink) in Model.Redirects)
                         {
-                            var redirect = redirectRow.Redirect;
                             var expiresAt = DateTimeOffset.FromUnixTimeSeconds(redirect.ExpiresAtUtc).UtcDateTime;
                             var isNeverExpiring = expiresAt > DateTime.UtcNow.AddYears(100);
                             <tr>
@@ -40,7 +39,7 @@
                                 <td class="is-vcentered jsi-td-truncate">
                                     <span title="@redirect.Target">@redirect.Target</span>
                                 </td>
-                                <td class="is-vcentered">@redirectRow.ClickCount</td>
+                                <td class="is-vcentered">@clickCount</td>
                                 <td class="is-vcentered">
                                     @if (isNeverExpiring)
                                     {
@@ -56,7 +55,7 @@
                                         <button type="button"
                                                 class="button is-small"
                                                 title="Copy link for @redirect.Id"
-                                                data-copy-url="@redirectRow.RedirectLink"
+                                                data-copy-url="@redirectLink"
                                                 aria-label="Copy link for @redirect.Id">
                                             <span class="icon">
                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
