@@ -177,8 +177,8 @@ Hinweise:
 docker run -p 8081:8081 \
            -e JSI_BaseUrl=<deine-url> \
            -e JSI_Account__Username=<dein-benutzername> \
-           -e JSI_Account__PasswordHash=<bcrypt-hash> \
-           -e JSI_Account__PasswordSalt=<dein-salt> \
+           -e 'JSI_Account__PasswordHash=<bcrypt-hash>' \
+           -e 'JSI_Account__PasswordSalt=<dein-salt>' \
            --health-cmd='curl -f http://localhost:8081/health/ready || exit 1' \
            --health-interval=30s \
            --health-timeout=5s \
@@ -188,6 +188,8 @@ docker run -p 8081:8081 \
 ```
 
 Der Container lauscht auf Port `8081`.
+
+Hinweis: BCrypt-Hashes enthalten `$`. In Shells wie Bash sollte der komplette `KEY=WERT`-Ausdruck daher quotiert werden, damit `$` nicht als Variablenersetzung ausgewertet wird.
 
 ### In Docker Compose
 
@@ -201,10 +203,10 @@ services:
     ports:
       - "8081:8081"
     environment:
-      - "JSI_BaseUrl=<deine-url>"
-      - "JSI_Account__Username=<dein-benutzername>"
-      - "JSI_Account__PasswordHash=<bcrypt-hash>"
-      - "JSI_Account__PasswordSalt=<dein-salt>"
+      JSI_BaseUrl: '<deine-url>'
+      JSI_Account__Username: '<dein-benutzername>'
+      JSI_Account__PasswordHash: '<bcrypt-hash>'
+      JSI_Account__PasswordSalt: '<dein-salt>'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8081/health/ready"]
       interval: 30s
@@ -212,6 +214,8 @@ services:
       retries: 3
       start_period: 15s
 ```
+
+Die einfachen Anfuehrungszeichen sind hier Teil der YAML-Syntax und werden nicht an den Container weitergereicht. Sie schuetzen vor YAML-Sonderfaellen und verhindern bei BCrypt-Hashes mit `$`, dass Docker Compose eine Variablenersetzung versucht.
 
 ### SQLite-Persistenz
 
@@ -234,11 +238,11 @@ services:
     ports:
       - "8081:8081"
     environment:
-      - "JSI_BaseUrl=<deine-url>"
-      - "JSI_Account__Username=<dein-benutzername>"
-      - "JSI_Account__PasswordHash=<bcrypt-hash>"
-      - "JSI_Account__PasswordSalt=<dein-salt>"
-      - "JSI_Sqlite__Path=/app/data/justshortit.db"
+      JSI_BaseUrl: '<deine-url>'
+      JSI_Account__Username: '<dein-benutzername>'
+      JSI_Account__PasswordHash: '<bcrypt-hash>'
+      JSI_Account__PasswordSalt: '<dein-salt>'
+      JSI_Sqlite__Path: '/app/data/justshortit.db'
     volumes:
       - jsi-data:/app/data
     healthcheck:
@@ -419,8 +423,8 @@ Notes:
 docker run -p 8081:8081 \
            -e JSI_BaseUrl=<your-url> \
            -e JSI_Account__Username=<your-username> \
-           -e JSI_Account__PasswordHash=<bcrypt-hash> \
-           -e JSI_Account__PasswordSalt=<your-salt> \
+           -e 'JSI_Account__PasswordHash=<bcrypt-hash>' \
+           -e 'JSI_Account__PasswordSalt=<your-salt>' \
            --health-cmd='curl -f http://localhost:8081/health/ready || exit 1' \
            --health-interval=30s \
            --health-timeout=5s \
@@ -430,6 +434,8 @@ docker run -p 8081:8081 \
 ```
 
 The container listens on port `8081`.
+
+Note: BCrypt hashes contain `$`. In shells such as Bash, quote the full `KEY=VALUE` expression so `$` is passed through literally instead of being treated as variable interpolation.
 
 ### In Docker Compose
 
@@ -443,10 +449,10 @@ services:
     ports:
       - "8081:8081"
     environment:
-      - "JSI_BaseUrl=<your-url>"
-      - "JSI_Account__Username=<your-username>"
-      - "JSI_Account__PasswordHash=<bcrypt-hash>"
-      - "JSI_Account__PasswordSalt=<your-salt>"
+      JSI_BaseUrl: '<your-url>'
+      JSI_Account__Username: '<your-username>'
+      JSI_Account__PasswordHash: '<bcrypt-hash>'
+      JSI_Account__PasswordSalt: '<your-salt>'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8081/health/ready"]
       interval: 30s
@@ -454,6 +460,8 @@ services:
       retries: 3
       start_period: 15s
 ```
+
+The single quotes here are YAML syntax only; they are not passed through as part of the value inside the container. They make the example safer for YAML parsing and avoid Docker Compose trying to interpolate `$` from BCrypt hashes.
 
 ### SQLite persistence
 
@@ -477,11 +485,11 @@ services:
     ports:
       - "8081:8081"
     environment:
-      - "JSI_BaseUrl=<your-url>"
-      - "JSI_Account__Username=<your-username>"
-      - "JSI_Account__PasswordHash=<bcrypt-hash>"
-      - "JSI_Account__PasswordSalt=<your-salt>"
-      - "JSI_Sqlite__Path=/app/data/justshortit.db"
+      JSI_BaseUrl: '<your-url>'
+      JSI_Account__Username: '<your-username>'
+      JSI_Account__PasswordHash: '<bcrypt-hash>'
+      JSI_Account__PasswordSalt: '<your-salt>'
+      JSI_Sqlite__Path: '/app/data/justshortit.db'
     volumes:
       - jsi-data:/app/data
     healthcheck:

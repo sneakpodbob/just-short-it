@@ -74,6 +74,30 @@ try
         account = builder.Configuration.GetSection("Account").Get<ConfiguredAccount>();
     }
 
+    static string MaskSecret(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return "<empty>";
+        }
+
+        const int prefixLength = 6;
+        const int suffixLength = 4;
+
+        if (value.Length <= prefixLength + suffixLength)
+        {
+            var visiblePrefixLength = Math.Min(3, value.Length);
+            return $"{value[..visiblePrefixLength]}...({value.Length} chars)";
+        }
+
+        return $"{value[..prefixLength]}...{value[^suffixLength..]} ({value.Length} chars)";
+    }
+
+    static int CountOccurrences(string? value, char needle)
+    {
+        return string.IsNullOrEmpty(value) ? 0 : value.Count(c => c == needle);
+    }
+
     // Check if everything is configured (right)
     if (!builder.Environment.IsDevelopment() &&
         (string.IsNullOrEmpty(baseUrl) || !Uri.IsWellFormedUriString(baseUrl, UriKind.Absolute)))
@@ -88,10 +112,37 @@ try
         string.IsNullOrEmpty(account.PasswordHash) ||
         string.IsNullOrEmpty(account.PasswordSalt))
     {
+        Log.Warning(
+            "Account config diagnostics: UsernameLength={UsernameLength}, HashLength={HashLength}, HashPreview={HashPreview}, HashDollarCount={HashDollarCount}, HashStartsWith2={HashStartsWith2}, HashContainsWhitespace={HashContainsWhitespace}, HashContainsQuotes={HashContainsQuotes}, SaltLength={SaltLength}, SaltPreview={SaltPreview}, SaltContainsWhitespace={SaltContainsWhitespace}, SaltContainsQuotes={SaltContainsQuotes}",
+            account?.Username?.Length ?? 0,
+            account?.PasswordHash?.Length ?? 0,
+            MaskSecret(account?.PasswordHash),
+            CountOccurrences(account?.PasswordHash, '$'),
+            account?.PasswordHash?.StartsWith("$2", StringComparison.Ordinal) ?? false,
+            account?.PasswordHash?.Any(char.IsWhiteSpace) ?? false,
+            account?.PasswordHash?.IndexOfAny(['\'', '"']) >= 0,
+            account?.PasswordSalt?.Length ?? 0,
+            MaskSecret(account?.PasswordSalt),
+            account?.PasswordSalt?.Any(char.IsWhiteSpace) ?? false,
+            account?.PasswordSalt?.IndexOfAny(['\'', '"']) >= 0);
+
         Log.Fatal("Startup validation failed: account credentials are not configured.");
         throw new ApplicationException(
             "Credentials not set, please provide JSI_Account__Username, JSI_Account__PasswordHash and JSI_Account__PasswordSalt.");
     }
+
+    Log.Information(
+        "Account hash diagnostics: HashLength={HashLength}, HashPreview={HashPreview}, HashDollarCount={HashDollarCount}, HashStartsWith2={HashStartsWith2}, HashContainsWhitespace={HashContainsWhitespace}, HashContainsQuotes={HashContainsQuotes}, SaltLength={SaltLength}, SaltPreview={SaltPreview}, SaltContainsWhitespace={SaltContainsWhitespace}, SaltContainsQuotes={SaltContainsQuotes}",
+        account.PasswordHash.Length,
+        MaskSecret(account.PasswordHash),
+        CountOccurrences(account.PasswordHash, '$'),
+        account.PasswordHash.StartsWith("$2", StringComparison.Ordinal),
+        account.PasswordHash.Any(char.IsWhiteSpace),
+        account.PasswordHash.IndexOfAny(['\'', '"']) >= 0,
+        account.PasswordSalt.Length,
+        MaskSecret(account.PasswordSalt),
+        account.PasswordSalt.Any(char.IsWhiteSpace),
+        account.PasswordSalt.IndexOfAny(['\'', '"']) >= 0);
 
     try
     {
