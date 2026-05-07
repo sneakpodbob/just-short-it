@@ -9,7 +9,7 @@ public class SqliteUrlStoreIdGenerationTests
 {
     private const string IdAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     private static readonly SqliteOptions DefaultSqliteOptions = new();
-    private static readonly IReservedIdProvider EmptyReservedIdProvider = new TestReservedIdProvider(Array.Empty<string>());
+    private static readonly IReservedIdProvider EmptyReservedIdProvider = new TestReservedIdProvider([]);
 
     /// <summary>
     /// Verifies the generator starts with the shortest possible ID length when no active IDs exist.
