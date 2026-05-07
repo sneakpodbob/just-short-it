@@ -26,6 +26,10 @@ jobs:
       - name: Restore
         run: dotnet restore JustShortIt.slnx
 
+      - name: Install frontend dependencies
+        working-directory: ./just-short-it
+        run: npm ci        
+
       - name: Build
         run: dotnet build JustShortIt.slnx --no-restore -c Release
 
