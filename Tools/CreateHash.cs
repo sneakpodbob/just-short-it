@@ -1,6 +1,6 @@
 #!/usr/bin/dotnet run
-#:package Spectre.Console@0.49.1
-#:package BCrypt.Net-Next@4.0.3
+#:package Spectre.Console@0.55.2
+#:package BCrypt.Net-Next@4.1.0
 
 using Spectre.Console;
 
