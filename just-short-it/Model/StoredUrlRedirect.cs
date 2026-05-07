@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace JustShortIt.Model;
 
 /// <summary>
@@ -8,7 +10,14 @@ namespace JustShortIt.Model;
 /// </remarks>
 public class StoredUrlRedirect
 {
-    public required string Id { get; set; }
+    [StringLength(16)]
+    [Key]
+    public required string Id { get; init; }
+
+    [StringLength(3072)]
+    [Required]
     public required string Target { get; set; }
-    public long ExpiresAtUtc { get; set; }
+
+    [Required]
+    public required long ExpiresAtUtc { get; set; }
 }

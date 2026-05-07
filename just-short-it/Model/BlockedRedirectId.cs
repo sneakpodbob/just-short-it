@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace JustShortIt.Model;
 
 /// <summary>
@@ -5,6 +7,7 @@ namespace JustShortIt.Model;
 /// </summary>
 public class BlockedRedirectId
 {
-    public required string Id { get; set; }
+    [StringLength(16)]
+    public required string Id { get; init; }
     public long ExpiresAtUtc { get; set; }
 }
