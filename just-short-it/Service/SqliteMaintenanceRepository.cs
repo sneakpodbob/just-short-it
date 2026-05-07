@@ -17,11 +17,18 @@ public class SqliteMaintenanceRepository
     {
         var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-        var deletedCount = await _dbContext.Redirects
+        var deletedRedirectCount = await _dbContext.Redirects
             .Where(x => x.ExpiresAtUtc <= now)
             .ExecuteDeleteAsync();
 
-        _logger.LogInformation("Expired redirect cleanup removed {DeletedCount} entries.", deletedCount);
+        var deletedBlockedIdCount = await _dbContext.BlockedRedirectIds
+            .Where(x => x.ExpiresAtUtc <= now)
+            .ExecuteDeleteAsync();
+
+        _logger.LogInformation(
+            "Expired redirect cleanup removed {DeletedRedirectCount} redirects and {DeletedBlockedIdCount} blocked IDs.",
+            deletedRedirectCount,
+            deletedBlockedIdCount);
     }
 
     public async Task CompactAndCompressDatabaseAsync()

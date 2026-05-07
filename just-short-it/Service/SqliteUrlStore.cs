@@ -10,15 +10,18 @@ public class SqliteUrlStore
 
     private readonly JustShortItDbContext _dbContext;
     private readonly ILogger<SqliteUrlStore> _logger;
+    private readonly SqliteOptions _sqliteOptions;
 
     /// <summary>
     /// Creates a URL store backed by the provided EF Core context.
     /// </summary>
     /// <param name="dbContext">Database context used for redirect queries and updates.</param>
+    /// <param name="sqliteOptions">SQLite-specific options for the URL store. Those contain configuration settings regarding database behavior.</param>
     /// <param name="logger">Logger used to record redirect creation, deletion, and generation events.</param>
-    public SqliteUrlStore(JustShortItDbContext dbContext, ILogger<SqliteUrlStore> logger)
+    public SqliteUrlStore(JustShortItDbContext dbContext, SqliteOptions sqliteOptions, ILogger<SqliteUrlStore> logger)
     {
         _dbContext = dbContext;
+        _sqliteOptions = sqliteOptions;
         _logger = logger;
     }
 
@@ -73,32 +76,54 @@ public class SqliteUrlStore
         var expiration = new DateTimeOffset(expirationUtc).ToUnixTimeSeconds();
 
         var existingRedirect = await _dbContext.Redirects.SingleOrDefaultAsync(x => x.Id == id);
-        if (existingRedirect is not null)
+        if (existingRedirect is not null && existingRedirect.ExpiresAtUtc > now)
         {
-            if (existingRedirect.ExpiresAtUtc > now)
-            {
-                _logger.LogWarning("Create redirect rejected because ID {RedirectId} is already active.", id);
-                return false;
-            }
-
-            existingRedirect.Target = target;
-            existingRedirect.ExpiresAtUtc = expiration;
-            await _dbContext.SaveChangesAsync();
-            _logger.LogInformation("Refreshed expired redirect {RedirectId}.", id);
-            return true;
+            _logger.LogWarning("Create redirect rejected because ID {RedirectId} is already active.", id);
+            return false;
         }
 
-        _dbContext.Redirects.Add(new StoredUrlRedirect
+        var existingBlock = await _dbContext.BlockedRedirectIds.SingleOrDefaultAsync(x => x.Id == id);
+        if (existingBlock is not null && existingBlock.ExpiresAtUtc > now)
         {
-            Id = id,
-            Target = target,
-            ExpiresAtUtc = expiration
-        });
+            _logger.LogWarning("Create redirect rejected because ID {RedirectId} is still blocked until {BlockedUntilUtc}.", id, existingBlock.ExpiresAtUtc);
+            return false;
+        }
+
+        if (existingRedirect is not null)
+        {
+            existingRedirect.Target = target;
+            existingRedirect.ExpiresAtUtc = expiration;
+        }
+        else
+        {
+            _dbContext.Redirects.Add(new StoredUrlRedirect
+            {
+                Id = id,
+                Target = target,
+                ExpiresAtUtc = expiration
+            });
+        }
+
+        var blockExpiration = expiration + _sqliteOptions.ExpiredIdReuseBlockSeconds;
+        if (existingBlock is not null)
+        {
+            existingBlock.ExpiresAtUtc = blockExpiration;
+        }
+        else
+        {
+            _dbContext.BlockedRedirectIds.Add(new BlockedRedirectId
+            {
+                Id = id,
+                ExpiresAtUtc = blockExpiration
+            });
+        }
 
         try
         {
             await _dbContext.SaveChangesAsync();
-            _logger.LogInformation("Created redirect {RedirectId}.", id);
+            _logger.LogInformation(existingRedirect is null
+                ? "Created redirect {RedirectId}."
+                : "Refreshed expired redirect {RedirectId}.", id);
             return true;
         }
         catch (DbUpdateException)
@@ -118,13 +143,24 @@ public class SqliteUrlStore
     public async Task DeleteAsync(string id)
     {
         var existingRedirect = await _dbContext.Redirects.SingleOrDefaultAsync(x => x.Id == id);
-        if (existingRedirect is null)
+        var existingBlock = await _dbContext.BlockedRedirectIds.SingleOrDefaultAsync(x => x.Id == id);
+
+        if (existingRedirect is null && existingBlock is null)
         {
             _logger.LogDebug("Delete requested for missing redirect {RedirectId}; no action taken.", id);
             return;
         }
 
-        _dbContext.Redirects.Remove(existingRedirect);
+        if (existingRedirect is not null)
+        {
+            _dbContext.Redirects.Remove(existingRedirect);
+        }
+
+        if (existingBlock is not null)
+        {
+            _dbContext.BlockedRedirectIds.Remove(existingBlock);
+        }
+
         await _dbContext.SaveChangesAsync();
         _logger.LogInformation("Deleted redirect {RedirectId}.", id);
     }
@@ -151,6 +187,14 @@ public class SqliteUrlStore
                 .Where(x => x.ExpiresAtUtc > now && x.Id.Length == currentLength)
                 .Select(x => x.Id)
                 .ToHashSetAsync();
+
+            var blockedIds = await _dbContext.BlockedRedirectIds
+                .AsNoTracking()
+                .Where(x => x.ExpiresAtUtc > now && x.Id.Length == currentLength)
+                .Select(x => x.Id)
+                .ToHashSetAsync();
+
+            existingIds.UnionWith(blockedIds);
 
             // If a length is fully saturated, move on to the next one.
             if (existingIds.Count >= Math.Pow(IdAlphabet.Length, currentLength))

@@ -91,6 +91,7 @@ Alle App-spezifischen Umgebungsvariablen verwenden das Präfix `JSI_`.
 | `Account:Username` | `JSI_Account__Username` | Ja | leer | Login-Benutzername. |
 | `Account:Password` | `JSI_Account__Password` | Ja | leer | Login-Passwort. |
 | `Sqlite:Path` | `JSI_Sqlite__Path` | Nein | `data/justshortit.db` | Pfad zur SQLite-Datei. |
+| `Sqlite:ExpiredIdReuseBlockSeconds` | `JSI_Sqlite__ExpiredIdReuseBlockSeconds` | Nein | `5184000` | Sperrfrist in Sekunden fuer IDs nach natuerlichem Ablauf eines Redirects (Standard: 60 Tage). |
 
 Zusätzlich wichtig:
 
@@ -122,8 +123,10 @@ Zusätzlich wichtig:
 
 - Redirects können ablaufen (Ablaufzeitpunkt in UTC gespeichert).
 - Abgelaufene Redirects werden stündlich bereinigt.
+- Nach natürlichem Ablauf bleibt die ID für die konfigurierte Sperrfrist blockiert.
+- Nach Ablauf dieser Sperrfrist kann die ID wiederverwendet werden.
+- Manuelles Löschen entfernt Redirect und Sperre sofort, die ID ist dann direkt wieder frei.
 - SQLite-Wartung (`VACUUM`) läuft wöchentlich.
-- Abgelaufene IDs können wiederverwendet werden.
 
 ### Sass
 
@@ -293,6 +296,7 @@ All app-specific environment variables use the `JSI_` prefix.
 | `Account:Username` | `JSI_Account__Username` | Yes | empty | Login username. |
 | `Account:Password` | `JSI_Account__Password` | Yes | empty | Login password. |
 | `Sqlite:Path` | `JSI_Sqlite__Path` | No | `data/justshortit.db` | Path to the SQLite database file. |
+| `Sqlite:ExpiredIdReuseBlockSeconds` | `JSI_Sqlite__ExpiredIdReuseBlockSeconds` | No | `5184000` | Cooldown in seconds before an expired redirect ID becomes reusable again (default: 60 days). |
 
 Also important:
 
@@ -324,8 +328,10 @@ Also important:
 
 - Redirects may expire (expiration is stored in UTC).
 - Expired redirects are cleaned hourly.
+- After natural expiry, the ID stays blocked for the configured cooldown period.
+- Once that cooldown expires, the ID becomes reusable again.
+- Manual deletion removes both the redirect and any cooldown block immediately.
 - SQLite maintenance (`VACUUM`) runs weekly.
-- Expired IDs are reusable.
 
 ### Sass
 
@@ -390,6 +396,7 @@ Just Short It stores redirects in a SQLite database.
 
 By default the database is created at `data/justshortit.db` relative to the application directory.
 This can be overridden via the `JSI_Sqlite__Path` environment variable.
+The post-expiry ID cooldown is configured via `JSI_Sqlite__ExpiredIdReuseBlockSeconds`.
 
 In containers, `/app/data` is exposed as a volume and `JSI_Sqlite__Path` defaults to `/app/data/justshortit.db`. If redirects should survive container restarts, this volume must be mounted to the host.
 

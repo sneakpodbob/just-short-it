@@ -8,6 +8,7 @@ namespace JustShortIt.Tests;
 public class SqliteUrlStoreIdGenerationTests
 {
     private const string IdAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    private static readonly SqliteOptions DefaultSqliteOptions = new();
 
     /// <summary>
     /// Verifies the generator starts with the shortest possible ID length when no active IDs exist.
@@ -16,7 +17,7 @@ public class SqliteUrlStoreIdGenerationTests
     public async Task GenerateNewId_OnEmptyStore_ReturnsSingleCharacterId()
     {
         await using var dbContext = CreateDbContext();
-        var store = new SqliteUrlStore(dbContext, NullLogger<SqliteUrlStore>.Instance);
+        var store = CreateStore(dbContext);
 
         var id = await store.GenerateNewId();
 
@@ -46,7 +47,7 @@ public class SqliteUrlStoreIdGenerationTests
 
         await dbContext.SaveChangesAsync();
 
-        var store = new SqliteUrlStore(dbContext, NullLogger<SqliteUrlStore>.Instance);
+        var store = CreateStore(dbContext);
         var id = await store.GenerateNewId();
 
         await Assert.That(id).IsEqualTo("Z");
@@ -74,7 +75,7 @@ public class SqliteUrlStoreIdGenerationTests
 
         await dbContext.SaveChangesAsync();
 
-        var store = new SqliteUrlStore(dbContext, NullLogger<SqliteUrlStore>.Instance);
+        var store = CreateStore(dbContext);
         var id = await store.GenerateNewId();
 
         await Assert.That(id.Length).IsEqualTo(2);
@@ -82,10 +83,10 @@ public class SqliteUrlStoreIdGenerationTests
     }
 
     /// <summary>
-    /// Verifies expired IDs are considered reusable and do not block candidate selection.
+    /// Verifies expired redirects remain unavailable while their cooldown block is still active.
     /// </summary>
     [Test]
-    public async Task GenerateNewId_ExpiredIdsDoNotBlockCandidateReuse()
+    public async Task GenerateNewId_WhenOnlyBlockedIdRemains_UsesNextLength()
     {
         await using var dbContext = CreateDbContext();
 
@@ -108,12 +109,114 @@ public class SqliteUrlStoreIdGenerationTests
             ExpiresAtUtc = now - 10
         });
 
+        dbContext.BlockedRedirectIds.Add(new BlockedRedirectId
+        {
+            Id = "Q",
+            ExpiresAtUtc = now + 3600
+        });
+
         await dbContext.SaveChangesAsync();
 
-        var store = new SqliteUrlStore(dbContext, NullLogger<SqliteUrlStore>.Instance);
+        var store = CreateStore(dbContext);
+        var id = await store.GenerateNewId();
+
+        await Assert.That(id.Length).IsEqualTo(2);
+    }
+
+    /// <summary>
+    /// Verifies IDs become reusable again once the cooldown block has expired.
+    /// </summary>
+    [Test]
+    public async Task GenerateNewId_WhenCooldownExpired_ReusesExpiredId()
+    {
+        await using var dbContext = CreateDbContext();
+
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        foreach (var c in IdAlphabet.Where(x => x != 'Q'))
+        {
+            dbContext.Redirects.Add(new StoredUrlRedirect
+            {
+                Id = c.ToString(),
+                Target = "https://example.test",
+                ExpiresAtUtc = now + 3600
+            });
+        }
+
+        dbContext.Redirects.Add(new StoredUrlRedirect
+        {
+            Id = "Q",
+            Target = "https://expired.test",
+            ExpiresAtUtc = now - 10
+        });
+
+        dbContext.BlockedRedirectIds.Add(new BlockedRedirectId
+        {
+            Id = "Q",
+            ExpiresAtUtc = now - 1
+        });
+
+        await dbContext.SaveChangesAsync();
+
+        var store = CreateStore(dbContext);
         var id = await store.GenerateNewId();
 
         await Assert.That(id).IsEqualTo("Q");
+    }
+
+    /// <summary>
+    /// Verifies create requests fail when the redirect is expired but its cooldown block is still active.
+    /// </summary>
+    [Test]
+    public async Task CreateAsync_WhenIdIsBlockedAfterExpiry_ReturnsFalse()
+    {
+        await using var dbContext = CreateDbContext();
+
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        dbContext.Redirects.Add(new StoredUrlRedirect
+        {
+            Id = "abc",
+            Target = "https://expired.test",
+            ExpiresAtUtc = now - 10
+        });
+
+        dbContext.BlockedRedirectIds.Add(new BlockedRedirectId
+        {
+            Id = "abc",
+            ExpiresAtUtc = now + 3600
+        });
+
+        await dbContext.SaveChangesAsync();
+
+        var store = CreateStore(dbContext);
+        var created = await store.CreateAsync("abc", "https://new.example", DateTime.UtcNow.AddHours(1));
+
+        await Assert.That(created).IsFalse();
+    }
+
+    /// <summary>
+    /// Verifies manual deletion removes any cooldown block and makes the ID reusable immediately.
+    /// </summary>
+    [Test]
+    public async Task DeleteAsync_RemovesCooldownBlockAndAllowsImmediateReuse()
+    {
+        await using var dbContext = CreateDbContext();
+        var store = CreateStore(dbContext, new SqliteOptions(ExpiredIdReuseBlockSeconds: 3600));
+
+        var created = await store.CreateAsync("abc", "https://example.test", DateTime.UtcNow.AddMinutes(5));
+        await Assert.That(created).IsTrue();
+
+        await store.DeleteAsync("abc");
+
+        var recreated = await store.CreateAsync("abc", "https://other.example", DateTime.UtcNow.AddHours(1));
+
+        await Assert.That(recreated).IsTrue();
+        await Assert.That(await dbContext.BlockedRedirectIds.AnyAsync(x => x.Id == "abc")).IsTrue();
+    }
+
+    private static SqliteUrlStore CreateStore(JustShortItDbContext dbContext, SqliteOptions? sqliteOptions = null)
+    {
+        return new SqliteUrlStore(dbContext, sqliteOptions ?? DefaultSqliteOptions, NullLogger<SqliteUrlStore>.Instance);
     }
 
     /// <summary>

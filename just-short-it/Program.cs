@@ -85,6 +85,7 @@ try
     // Set up SQLite persistence
     Directory.CreateDirectory(Path.GetDirectoryName(databasePath) ?? AppContext.BaseDirectory);
     builder.Services.AddDbContext<JustShortItDbContext>(options => options.UseSqlite($"Data Source={databasePath}"));
+    builder.Services.AddSingleton(sqlite);
     builder.Services.AddScoped<SqliteUrlStore>();
     builder.Services.AddScoped<SqliteMaintenanceRepository>();
     builder.Services.AddScheduler();
@@ -122,6 +123,12 @@ try
 
     Log.Information("Application startup complete. Environment: {EnvironmentName}", app.Environment.EnvironmentName);
 
+    app.Lifetime.ApplicationStarted.Register(() =>
+    {
+        var addresses = app.Urls.Any() ? string.Join(", ", app.Urls) : "(none)";
+        Log.Information("HTTP server is listening on: {Addresses}", addresses);
+    });
+
     app.Services.UseScheduler(scheduler =>
     {
         scheduler.Schedule<ExpiredRedirectCleanupInvocable>().Hourly();
@@ -132,8 +139,7 @@ try
     using (var scope = app.Services.CreateScope())
     {
         var dbContext = scope.ServiceProvider.GetRequiredService<JustShortItDbContext>();
-        await dbContext.Database.EnsureCreatedAsync();
-        Log.Information("Database ensure-created check completed.");
+        await DatabaseInitializer.InitializeAsync(dbContext);
     }
 
     // Configure Cookies (used in Authentication)
@@ -207,3 +213,4 @@ finally
 {
     Log.CloseAndFlush();
 }
+

@@ -14,6 +14,7 @@ public class JustShortItDbContext : DbContext
     {
     }
 
+    public DbSet<BlockedRedirectId> BlockedRedirectIds => Set<BlockedRedirectId>();
     public DbSet<StoredUrlRedirect> Redirects => Set<StoredUrlRedirect>();
 
     /// <summary>
@@ -33,6 +34,20 @@ public class JustShortItDbContext : DbContext
 
             entity.Property(x => x.Target)
                 .HasColumnName("target")
+                .IsRequired();
+
+            entity.Property(x => x.ExpiresAtUtc)
+                .HasColumnName("expires_at_utc")
+                .IsRequired();
+        });
+
+        modelBuilder.Entity<BlockedRedirectId>(entity =>
+        {
+            entity.ToTable("blocked_redirect_ids");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Id)
+                .HasColumnName("id")
                 .IsRequired();
 
             entity.Property(x => x.ExpiresAtUtc)
