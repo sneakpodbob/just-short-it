@@ -86,6 +86,7 @@ try
     Directory.CreateDirectory(Path.GetDirectoryName(databasePath) ?? AppContext.BaseDirectory);
     builder.Services.AddDbContext<JustShortItDbContext>(options => options.UseSqlite($"Data Source={databasePath}"));
     builder.Services.AddSingleton(sqlite);
+    builder.Services.AddSingleton<IReservedIdProvider, ReservedIdProvider>();
     builder.Services.AddScoped<SqliteUrlStore>();
     builder.Services.AddScoped<SqliteMaintenanceRepository>();
     builder.Services.AddScheduler();

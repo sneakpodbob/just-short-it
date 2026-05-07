@@ -10,6 +10,7 @@ public class SqliteUrlStore
 
     private readonly JustShortItDbContext _dbContext;
     private readonly ILogger<SqliteUrlStore> _logger;
+    private readonly IReservedIdProvider _reservedIdProvider;
     private readonly SqliteOptions _sqliteOptions;
 
     /// <summary>
@@ -17,11 +18,17 @@ public class SqliteUrlStore
     /// </summary>
     /// <param name="dbContext">Database context used for redirect queries and updates.</param>
     /// <param name="sqliteOptions">SQLite-specific options for the URL store. Those contain configuration settings regarding database behavior.</param>
+    /// <param name="reservedIdProvider">Provider exposing route-reserved IDs that should never be assigned to redirects.</param>
     /// <param name="logger">Logger used to record redirect creation, deletion, and generation events.</param>
-    public SqliteUrlStore(JustShortItDbContext dbContext, SqliteOptions sqliteOptions, ILogger<SqliteUrlStore> logger)
+    public SqliteUrlStore(
+        JustShortItDbContext dbContext,
+        SqliteOptions sqliteOptions,
+        IReservedIdProvider reservedIdProvider,
+        ILogger<SqliteUrlStore> logger)
     {
         _dbContext = dbContext;
         _sqliteOptions = sqliteOptions;
+        _reservedIdProvider = reservedIdProvider;
         _logger = logger;
     }
 
@@ -72,6 +79,12 @@ public class SqliteUrlStore
     /// </remarks>
     public async Task<bool> CreateAsync(string id, string target, DateTime expirationUtc)
     {
+        if (_reservedIdProvider.ReservedIds.Contains(id))
+        {
+            _logger.LogWarning("Create redirect rejected because ID {RedirectId} is reserved by application routing.", id);
+            return false;
+        }
+
         var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         var expiration = new DateTimeOffset(expirationUtc).ToUnixTimeSeconds();
 
@@ -182,7 +195,7 @@ public class SqliteUrlStore
         {
             var currentLength = length;
 
-            var existingIds = await _dbContext.Redirects
+            var unavailableIds = await _dbContext.Redirects
                 .AsNoTracking()
                 .Where(x => x.ExpiresAtUtc > now && x.Id.Length == currentLength)
                 .Select(x => x.Id)
@@ -194,10 +207,18 @@ public class SqliteUrlStore
                 .Select(x => x.Id)
                 .ToHashSetAsync();
 
-            existingIds.UnionWith(blockedIds);
+            unavailableIds.UnionWith(blockedIds);
+
+            foreach (var reservedId in _reservedIdProvider.ReservedIds)
+            {
+                if (reservedId.Length == currentLength)
+                {
+                    unavailableIds.UnionWith(ExpandReservedIdCandidates(reservedId));
+                }
+            }
 
             // If a length is fully saturated, move on to the next one.
-            if (existingIds.Count >= Math.Pow(IdAlphabet.Length, currentLength))
+            if (unavailableIds.Count >= Math.Pow(IdAlphabet.Length, currentLength))
             {
                 continue;
             }
@@ -206,7 +227,7 @@ public class SqliteUrlStore
             {
                 var candidate = GenerateCandidate(currentLength);
 
-                if (!existingIds.Contains(candidate))
+                if (!unavailableIds.Contains(candidate))
                 {
                     return candidate;
                 }
@@ -231,5 +252,57 @@ public class SqliteUrlStore
         }
 
         return new string(chars);
+    }
+
+    private static IEnumerable<string> ExpandReservedIdCandidates(string reservedId)
+    {
+        var candidates = new List<string> { string.Empty };
+
+        foreach (var character in reservedId)
+        {
+            var nextCharacters = GetEquivalentAlphabetCharacters(character);
+            if (nextCharacters.Count == 0)
+            {
+                return [];
+            }
+
+            var nextCandidates = new List<string>(candidates.Count * nextCharacters.Count);
+
+            foreach (var prefix in candidates)
+            {
+                foreach (var nextCharacter in nextCharacters)
+                {
+                    nextCandidates.Add(prefix + nextCharacter);
+                }
+            }
+
+            candidates = nextCandidates;
+        }
+
+        return candidates;
+    }
+
+    private static IReadOnlyList<char> GetEquivalentAlphabetCharacters(char character)
+    {
+        var matches = new HashSet<char>();
+
+        if (IdAlphabet.Contains(character))
+        {
+            matches.Add(character);
+        }
+
+        var uppercase = char.ToUpperInvariant(character);
+        if (IdAlphabet.Contains(uppercase))
+        {
+            matches.Add(uppercase);
+        }
+
+        var lowercase = char.ToLowerInvariant(character);
+        if (IdAlphabet.Contains(lowercase))
+        {
+            matches.Add(lowercase);
+        }
+
+        return matches.ToArray();
     }
 }
