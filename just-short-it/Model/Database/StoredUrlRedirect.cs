@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace JustShortIt.Model;
+namespace JustShortIt.Model.Database;
 
 /// <summary>
 /// Persistence model for redirects stored in SQLite.

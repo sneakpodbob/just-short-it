@@ -1,4 +1,4 @@
-using JustShortIt.Model;
+using JustShortIt.Model.Dto;
 using JustShortIt.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

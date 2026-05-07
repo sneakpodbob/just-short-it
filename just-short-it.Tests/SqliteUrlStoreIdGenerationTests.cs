@@ -1,4 +1,5 @@
 using JustShortIt.Model;
+using JustShortIt.Model.Database;
 using JustShortIt.Service;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;

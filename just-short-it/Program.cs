@@ -1,4 +1,5 @@
 using JustShortIt.Model;
+using JustShortIt.Model.Dto;
 using JustShortIt.Service;
 using Coravel;
 using Microsoft.AspNetCore.Authentication.Cookies;

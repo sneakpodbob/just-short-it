@@ -1,6 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
-namespace JustShortIt.Model;
+namespace JustShortIt.Model.Dto;
 
 /// <summary>
 /// Credential model used for login binding and configuration-backed authentication.

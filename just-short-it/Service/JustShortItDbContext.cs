@@ -1,4 +1,4 @@
-using JustShortIt.Model;
+using JustShortIt.Model.Database;
 using Microsoft.EntityFrameworkCore;
 
 namespace JustShortIt.Service;
@@ -27,6 +27,8 @@ public class JustShortItDbContext : DbContext
         {
             entity.ToTable("redirects");
             entity.HasKey(x => x.Id);
+            entity.HasIndex(x => x.Id)
+                .IsUnique();
 
             entity.Property(x => x.Id)
                 .HasColumnName("id")
@@ -45,6 +47,8 @@ public class JustShortItDbContext : DbContext
         {
             entity.ToTable("blocked_redirect_ids");
             entity.HasKey(x => x.Id);
+            entity.HasIndex(x => x.Id)
+                .IsUnique();                
 
             entity.Property(x => x.Id)
                 .HasColumnName("id")

@@ -1,7 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 
-namespace JustShortIt.Model; 
+namespace JustShortIt.Model.Dto;
 
 /// <summary>
 /// UI model used when creating or displaying a short URL mapping.

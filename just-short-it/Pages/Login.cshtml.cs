@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using JustShortIt.Model;
+using JustShortIt.Model.Dto;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;

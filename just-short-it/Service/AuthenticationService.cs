@@ -1,4 +1,4 @@
-﻿using JustShortIt.Model;
+﻿using JustShortIt.Model.Dto;
 
 namespace JustShortIt.Service; 
 

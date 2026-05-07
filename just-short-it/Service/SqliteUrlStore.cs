@@ -1,4 +1,5 @@
 using JustShortIt.Model;
+using JustShortIt.Model.Database;
 using Microsoft.EntityFrameworkCore;
 
 namespace JustShortIt.Service;

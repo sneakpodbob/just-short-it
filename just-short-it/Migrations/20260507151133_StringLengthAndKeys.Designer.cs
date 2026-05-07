@@ -19,7 +19,7 @@ namespace JustShortIt.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.7");
 
-            modelBuilder.Entity("JustShortIt.Model.BlockedRedirectId", b =>
+            modelBuilder.Entity("JustShortIt.Model.Database.BlockedRedirectId", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(16)
@@ -35,7 +35,7 @@ namespace JustShortIt.Migrations
                     b.ToTable("blocked_redirect_ids", (string)null);
                 });
 
-            modelBuilder.Entity("JustShortIt.Model.StoredUrlRedirect", b =>
+            modelBuilder.Entity("JustShortIt.Model.Database.StoredUrlRedirect", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(16)
