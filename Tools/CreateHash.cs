@@ -35,7 +35,7 @@ var interogationResult = BCrypt.Net.BCrypt.InterrogateHash(hash);
 
 AnsiConsole.WriteLine($"Version: {interogationResult.Version}");
 AnsiConsole.WriteLine($"Work Factor: {interogationResult.WorkFactor}");
-AnsiConsole.WriteLine($"$Settings: {interogationResult.Settings ?? "null"}");
+AnsiConsole.WriteLine($"Settings: {interogationResult.Settings ?? "null"}");
 
 var verify = BCrypt.Net.BCrypt.Verify(saltedPassword, hash);
 AnsiConsole.WriteLine($"Verification of password + salt against hash: {(verify ? "[green]Success[/]" : "[red]Failure[/]")}");
