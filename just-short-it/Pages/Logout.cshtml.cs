@@ -18,10 +18,16 @@ public class LogoutModel : PageModel
     /// Signs the current user out and returns to the landing page.
     /// </summary>
     /// <returns>A redirect to the index page after cookie sign-out.</returns>
-    public async Task<IActionResult> OnGetAsync()
+    public async Task<IActionResult> OnPostAsync()
     {
         _logger.LogInformation("User {Username} signed out.", User.Identity?.Name ?? "unknown");
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         return RedirectToPage("Index");
     }
+
+    /// <summary>
+    /// Prevents state-changing logout via GET requests.
+    /// </summary>
+    /// <returns>A 405 response.</returns>
+    public IActionResult OnGet() => StatusCode(StatusCodes.Status405MethodNotAllowed);
 }

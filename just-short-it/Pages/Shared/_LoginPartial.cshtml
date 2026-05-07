@@ -1,7 +1,10 @@
 ﻿@if (User.Identity?.IsAuthenticated is true) 
 {
     <span class="mx-3">@User.Identity.Name</span>
-    <a class="button is-ghost" asp-page="Logout">Logout</a>
+    <form method="post" asp-page="Logout" class="is-inline-block">
+        @Html.AntiForgeryToken()
+        <button class="button is-ghost" type="submit">Logout</button>
+    </form>
 }
 else 
 {

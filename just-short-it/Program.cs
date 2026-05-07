@@ -11,6 +11,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Serilog;
 using Serilog.Events;
 using System.Security.Cryptography;
+using System.Threading.RateLimiting;
 using System.Text.Json;
 
 Log.Logger = new LoggerConfiguration()
@@ -57,18 +58,20 @@ try
     }
 
     string? baseUrl;
-    User? user;
+    ConfiguredAccount? account;
 
     if (builder.Environment.IsDevelopment())
     {
         baseUrl = null; // Derived dynamically from each request at runtime
-        user = new User("test", "test");
+        const string devPasswordSalt = "dev-fixed-salt-2026";
+        const string devPasswordHash = "$2a$11$5fzMpRasFPOj0dLaBoI7OO2IbtqfYh507tDSlaiJnJHDbs8zo0SrW";
+        account = new ConfiguredAccount("test", devPasswordHash, devPasswordSalt);
         Log.Warning("YOU ARE RUNNING A DEVELOPMENT BUILD WITH TEST CREDENTIALS, DO NOT RUN THIS IN PRODUCTION.");
     }
     else
     {
         baseUrl = builder.Configuration.GetValue<string>("BaseUrl");
-        user = builder.Configuration.GetSection("Account").Get<User>();
+        account = builder.Configuration.GetSection("Account").Get<ConfiguredAccount>();
     }
 
     // Check if everything is configured (right)
@@ -80,11 +83,14 @@ try
             "Base-URL is not set to a correct URL, please provide JSI_BaseUrl with a valid url.");
     }
 
-    if (user is null || string.IsNullOrEmpty(user.Username) || string.IsNullOrEmpty(user.Password))
+    if (account is null ||
+        string.IsNullOrEmpty(account.Username) ||
+        string.IsNullOrEmpty(account.PasswordHash) ||
+        string.IsNullOrEmpty(account.PasswordSalt))
     {
         Log.Fatal("Startup validation failed: account credentials are not configured.");
         throw new ApplicationException(
-            "Credentials not set, please provide JSI_Account__Username and JSI_Account__Password.");
+            "Credentials not set, please provide JSI_Account__Username, JSI_Account__PasswordHash and JSI_Account__PasswordSalt.");
     }
 
     // Set up SQLite persistence
@@ -94,13 +100,14 @@ try
     builder.Services.AddSingleton<IReservedIdProvider, ReservedIdProvider>();
     builder.Services.AddScoped<SqliteUrlStore>();
     builder.Services.AddScoped<SqliteMaintenanceRepository>();
+    builder.Services.AddSingleton<LoginAttemptService>();
     builder.Services.AddScheduler();
     builder.Services.AddTransient<ExpiredRedirectCleanupInvocable>();
     builder.Services.AddTransient<SqliteMaintenanceInvocable>();
     Log.Information("Running with SQLite persistence at {DatabasePath}.", databasePath);
 
     // Add Authentication
-    builder.Services.AddSingleton(_ => new AuthenticationService(user));
+    builder.Services.AddSingleton(_ => new AuthenticationService(account));
     builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(options =>
     {
         options.ExpireTimeSpan = TimeSpan.FromHours(24);
@@ -109,6 +116,22 @@ try
         options.LoginPath = "/Login";
         options.LogoutPath = "/Logout";
         options.Cookie.SecurePolicy = securePolicy;
+    });
+
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+        options.AddPolicy("login", context =>
+            RateLimitPartition.GetSlidingWindowLimiter(
+                partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new SlidingWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromMinutes(1),
+                    SegmentsPerWindow = 6,
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                }));
     });
 
     builder.Services.AddHealthChecks()
@@ -209,6 +232,7 @@ try
     app.UseForwardedHeaders();
     app.UseStaticFiles();
     app.UseRouting();
+    app.UseRateLimiter();
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapRazorPages();

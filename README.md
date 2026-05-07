@@ -89,7 +89,8 @@ Alle App-spezifischen Umgebungsvariablen verwenden das Präfix `JSI_`.
 | --- | --- | --- | --- | --- |
 | `BaseUrl` | `JSI_BaseUrl` | Ja | leer | Externe Basis-URL für generierte Short-Links (Production). |
 | `Account:Username` | `JSI_Account__Username` | Ja | leer | Login-Benutzername. |
-| `Account:Password` | `JSI_Account__Password` | Ja | leer | Login-Passwort. |
+| `Account:PasswordHash` | `JSI_Account__PasswordHash` | Ja | leer | BCrypt-Hash für Passwort + Salt. |
+| `Account:PasswordSalt` | `JSI_Account__PasswordSalt` | Ja | leer | Zusätzlicher Salt, der vor dem Hashing an das Passwort angehängt wird. |
 | `Sqlite:Path` | `JSI_Sqlite__Path` | Nein | `data/justshortit.db` | Pfad zur SQLite-Datei. |
 | `Sqlite:ExpiredIdReuseBlockSeconds` | `JSI_Sqlite__ExpiredIdReuseBlockSeconds` | Nein | `5184000` | Sperrfrist in Sekunden fuer IDs nach natuerlichem Ablauf eines Redirects (Standard: 60 Tage). |
 
@@ -111,6 +112,7 @@ Zusätzlich wichtig:
 ### Authentifizierung und Zugriff
 
 - Login über Cookie-Authentifizierung.
+- Passwortprüfung nutzt BCrypt über `passwort + salt` gegen den konfigurierten Hash.
 - Authentifizierte Seiten:
   - URL-Verwaltung (`/Urls`)
   - Redirect-Inspektion/Löschen (`/Inspect`)
@@ -118,6 +120,18 @@ Zusätzlich wichtig:
   - Lebensdauer: 24 Stunden
   - Sliding Expiration: aktiv
   - In Production nur sichere Cookies (`SecurePolicy=Always`)
+
+Hash für die Konfiguration erzeugen:
+
+- Datei-basiertes Tool unter `TOOLS/CreateHash.cs` (ohne eigenes `.csproj`).
+- Start im Repository-Root mit:
+
+```bash
+dotnet run ./TOOLS/CreateHash.cs
+```
+
+- Das Tool fragt interaktiv nach Salt und Passwort und gibt den BCrypt-Hash für `passwort + salt` aus.
+- Es wird nichts gespeichert und nichts nach außen übertragen.
 
 ### Redirect-Lebenszyklus und Wartung
 
@@ -163,7 +177,8 @@ Hinweise:
 docker run -p 8081:8081 \
            -e JSI_BaseUrl=<deine-url> \
            -e JSI_Account__Username=<dein-benutzername> \
-           -e JSI_Account__Password=<dein-passwort> \
+           -e JSI_Account__PasswordHash=<bcrypt-hash> \
+           -e JSI_Account__PasswordSalt=<dein-salt> \
            --health-cmd='curl -f http://localhost:8081/health/ready || exit 1' \
            --health-interval=30s \
            --health-timeout=5s \
@@ -188,7 +203,8 @@ services:
     environment:
       - "JSI_BaseUrl=<deine-url>"
       - "JSI_Account__Username=<dein-benutzername>"
-      - "JSI_Account__Password=<dein-passwort>"
+      - "JSI_Account__PasswordHash=<bcrypt-hash>"
+      - "JSI_Account__PasswordSalt=<dein-salt>"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8081/health/ready"]
       interval: 30s
@@ -220,7 +236,8 @@ services:
     environment:
       - "JSI_BaseUrl=<deine-url>"
       - "JSI_Account__Username=<dein-benutzername>"
-      - "JSI_Account__Password=<dein-passwort>"
+      - "JSI_Account__PasswordHash=<bcrypt-hash>"
+      - "JSI_Account__PasswordSalt=<dein-salt>"
       - "JSI_Sqlite__Path=/app/data/justshortit.db"
     volumes:
       - jsi-data:/app/data
@@ -314,7 +331,8 @@ All app-specific environment variables use the `JSI_` prefix.
 | --- | --- | --- | --- | --- |
 | `BaseUrl` | `JSI_BaseUrl` | Yes | empty | Public base URL used for generated short links (Production). |
 | `Account:Username` | `JSI_Account__Username` | Yes | empty | Login username. |
-| `Account:Password` | `JSI_Account__Password` | Yes | empty | Login password. |
+| `Account:PasswordHash` | `JSI_Account__PasswordHash` | Yes | empty | BCrypt hash of password + salt. |
+| `Account:PasswordSalt` | `JSI_Account__PasswordSalt` | Yes | empty | Additional salt appended to password before hashing. |
 | `Sqlite:Path` | `JSI_Sqlite__Path` | No | `data/justshortit.db` | Path to the SQLite database file. |
 | `Sqlite:ExpiredIdReuseBlockSeconds` | `JSI_Sqlite__ExpiredIdReuseBlockSeconds` | No | `5184000` | Cooldown in seconds before an expired redirect ID becomes reusable again (default: 60 days). |
 
@@ -336,6 +354,7 @@ Also important:
 ### Authentication and Access
 
 - Login uses cookie authentication.
+- Password verification uses BCrypt against configured `password + salt`.
 - Authenticated pages:
   - URL management (`/Urls`)
   - Redirect inspection/deletion (`/Inspect`)
@@ -343,6 +362,18 @@ Also important:
   - Lifetime: 24 hours
   - Sliding expiration: enabled
   - Secure cookies in Production (`SecurePolicy=Always`)
+
+Generate a hash for configuration:
+
+- File-based helper under `TOOLS/CreateHash.cs` (no dedicated `.csproj` needed).
+- Run it from the repository root:
+
+```bash
+dotnet run ./TOOLS/CreateHash.cs
+```
+
+- The tool interactively asks for salt and password, then prints the BCrypt hash for `password + salt`.
+- Nothing is stored and nothing is sent anywhere.
 
 ### Redirect Lifecycle and Maintenance
 
@@ -388,7 +419,8 @@ Notes:
 docker run -p 8081:8081 \
            -e JSI_BaseUrl=<your-url> \
            -e JSI_Account__Username=<your-username> \
-           -e JSI_Account__Password=<your-password> \
+           -e JSI_Account__PasswordHash=<bcrypt-hash> \
+           -e JSI_Account__PasswordSalt=<your-salt> \
            --health-cmd='curl -f http://localhost:8081/health/ready || exit 1' \
            --health-interval=30s \
            --health-timeout=5s \
@@ -413,7 +445,8 @@ services:
     environment:
       - "JSI_BaseUrl=<your-url>"
       - "JSI_Account__Username=<your-username>"
-      - "JSI_Account__Password=<your-password>"
+      - "JSI_Account__PasswordHash=<bcrypt-hash>"
+      - "JSI_Account__PasswordSalt=<your-salt>"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8081/health/ready"]
       interval: 30s
@@ -446,7 +479,8 @@ services:
     environment:
       - "JSI_BaseUrl=<your-url>"
       - "JSI_Account__Username=<your-username>"
-      - "JSI_Account__Password=<your-password>"
+      - "JSI_Account__PasswordHash=<bcrypt-hash>"
+      - "JSI_Account__PasswordSalt=<your-salt>"
       - "JSI_Sqlite__Path=/app/data/justshortit.db"
     volumes:
       - jsi-data:/app/data

@@ -52,7 +52,7 @@
             <div class="field">
                 <label class="label" asp-for="Model!.Id">ID</label>
                 <div class="control">
-                    <input required class="input" type="text" name="Model.Id" id="Model_Id" value="@(Model.Model?.Id ?? string.Empty)" />
+                    <input required class="input" type="text" name="Model.Id" id="Model_Id" value="@(Model.Model?.Id ?? string.Empty)" maxlength="16" pattern="[A-Za-z0-9._-]{1,16}" />
                 </div>
                 <span class="help is-danger" asp-validation-for="Model!.Id"></span>
             </div>

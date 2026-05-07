@@ -3,13 +3,15 @@ using JustShortIt.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Web;
+using System.Text.RegularExpressions;
 
 namespace JustShortIt.Pages;
 
 [Authorize]
 public class UrlsModel : PageModel
 {
+    private static readonly Regex RedirectIdRegex = new("^[A-Za-z0-9._-]{1,16}$", RegexOptions.Compiled);
+
     [BindProperty]
     public UrlRedirect? Model { get; set; }
     [BindProperty(Name = "message")]
@@ -76,11 +78,19 @@ public class UrlsModel : PageModel
     /// </returns>
     public async Task<IActionResult> OnPostInspectAsync()
     {
-        string? id = Request.Form["Inspect_Id"];
-        if (id is null || string.IsNullOrEmpty(id))
+        var id = Request.Form["Inspect_Id"].ToString().Trim();
+        if (string.IsNullOrEmpty(id))
         {
             _logger.LogWarning("Inspect form submission rejected due to missing ID.");
             ModelState.AddModelError("Inspect_Id", "ID is a required field");
+            await EnsureFormModelInitializedAsync();
+            return Page();
+        }
+
+        if (!RedirectIdRegex.IsMatch(id))
+        {
+            _logger.LogWarning("Inspect form submission rejected due to invalid ID format.");
+            ModelState.AddModelError("Inspect_Id", "ID format is invalid.");
             await EnsureFormModelInitializedAsync();
             return Page();
         }
@@ -112,7 +122,14 @@ public class UrlsModel : PageModel
     {
         if (!ModelState.IsValid || Model is null) return Page();
 
-        var id = HttpUtility.UrlEncode(Model.Id);
+        var id = Model.Id.Trim();
+
+        if (!RedirectIdRegex.IsMatch(id))
+        {
+            _logger.LogWarning("URL creation rejected due to invalid ID format.");
+            Message = "ID format is invalid.";
+            return Page();
+        }
 
         if (!Uri.TryCreate($"{GetEffectiveBaseUrl()}{id}", UriKind.Absolute, out var link))
         {
@@ -128,8 +145,27 @@ public class UrlsModel : PageModel
             return Page();
         }
 
-        var expirationDate = DateTime.FromBinary(expirationDateBinary);
-        if (!await Db.CreateAsync(id, Model.Target, expirationDate.ToUniversalTime()))
+        DateTime expirationDateUtc;
+        try
+        {
+            expirationDateUtc = DateTime.FromBinary(expirationDateBinary).ToUniversalTime();
+        }
+        catch (ArgumentException)
+        {
+            _logger.LogWarning("URL creation rejected for ID {RedirectId} due to malformed expiration payload.", id);
+            Message = "Expiration date is not valid.";
+            return Page();
+        }
+
+        var nowUtc = DateTime.UtcNow;
+        if (expirationDateUtc <= nowUtc.AddMinutes(1) || expirationDateUtc > nowUtc.AddYears(1001))
+        {
+            _logger.LogWarning("URL creation rejected for ID {RedirectId} due to expiration outside accepted range.", id);
+            Message = "Expiration date is outside the accepted range.";
+            return Page();
+        }
+
+        if (!await Db.CreateAsync(id, Model.Target, expirationDateUtc))
         {
             _logger.LogWarning("URL creation rejected because ID {RedirectId} is already taken.", id);
             Message = "This ID is already taken.";
@@ -142,7 +178,7 @@ public class UrlsModel : PageModel
 
         Message = "URL Generated!";
         GeneratedLink = link.ToString();
-        _logger.LogInformation("Created short URL {RedirectId} for target {TargetUrl}.", id, Model.Target);
+        _logger.LogInformation("Created short URL {RedirectId} for target {TargetUrl}.", id, RedactTargetForLog(Model.Target));
         await EnsureFormModelInitializedAsync();
         return Page();
     }
@@ -157,6 +193,22 @@ public class UrlsModel : PageModel
         Message = message;
         await EnsureFormModelInitializedAsync();
         return Page();
+    }
+
+    private static string RedactTargetForLog(string target)
+    {
+        if (!Uri.TryCreate(target, UriKind.Absolute, out var targetUri))
+        {
+            return "[invalid-target-url]";
+        }
+
+        var builder = new UriBuilder(targetUri)
+        {
+            Query = string.Empty,
+            Fragment = string.Empty
+        };
+
+        return builder.Uri.GetLeftPart(UriPartial.Path);
     }
 
 }
