@@ -22,7 +22,9 @@ public class InspectModel : PageModel
     public UrlRedirect? UrlRedirect { get; set; }
     public RedirectInspectDetails? RedirectDetails { get; set; }
     public IReadOnlyList<ClickEventItem> ClickEvents { get; set; } = [];
+    public string? RedirectLink { get; private set; }
     
+    private string? BaseUrl { get; }
     private SqliteUrlStore Db { get; }
     private readonly ILogger<InspectModel> _logger;
 
@@ -31,11 +33,23 @@ public class InspectModel : PageModel
     /// </summary>
     /// <param name="db">Redirect store used for lookup and deletion.</param>
     /// <param name="logger">Logger used to record inspect lookups and delete operations.</param>
-    public InspectModel(SqliteUrlStore db, ILogger<InspectModel> logger)
+    public InspectModel(IConfiguration configuration, IWebHostEnvironment env, SqliteUrlStore db, ILogger<InspectModel> logger)
     {
+        if (!env.IsDevelopment())
+        {
+            var configuredBaseUrl = configuration.GetValue<string>("BaseUrl");
+            BaseUrl = new Uri(configuredBaseUrl ?? throw new InvalidOperationException("BaseUrl not configured correctly."), UriKind.Absolute).ToString();
+        }
+
         Db = db;
         _logger = logger;
     }
+
+    private string GetEffectiveBaseUrl() =>
+        BaseUrl ?? $"{Request.Scheme}://{Request.Host}{Request.PathBase}/";
+
+    private string BuildRedirectLink(string id) =>
+        new Uri(new Uri(GetEffectiveBaseUrl(), UriKind.Absolute), id).ToString();
 
     /// <summary>
     /// Handles delete requests for the current ID.
@@ -75,6 +89,8 @@ public class InspectModel : PageModel
         ReturnTo = returnTo;
 
         if (Id is null) return Page();
+
+        RedirectLink = BuildRedirectLink(Id);
 
         var redirect = await Db.GetRedirectAsync(Id);
         if (redirect is not null)

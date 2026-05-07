@@ -53,6 +53,17 @@
                                 </td>
                                 <td class="is-vcentered">
                                     <div class="buttons is-right">
+                                        <button type="button"
+                                                class="button is-small"
+                                                title="Copy link for @redirect.Id"
+                                                data-copy-url="@redirectRow.RedirectLink"
+                                                aria-label="Copy link for @redirect.Id">
+                                            <span class="icon">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+                                                    <path d="M16 1H6a2 2 0 0 0-2 2v12h2V3h10V1zm3 4H10a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H10V7h9v14z"/>
+                                                </svg>
+                                            </span>
+                                        </button>
                                         <a class="button is-small is-info"
                                            asp-page="Inspect"
                                            asp-route-id="@redirect.Id"

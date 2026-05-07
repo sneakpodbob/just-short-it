@@ -11,14 +11,27 @@ public class RedirectsModel : PageModel
 {
     public IReadOnlyList<RedirectListItem> Redirects { get; private set; } = [];
 
+    private string? BaseUrl { get; }
     private SqliteUrlStore Db { get; }
     private readonly ILogger<RedirectsModel> _logger;
 
-    public RedirectsModel(SqliteUrlStore db, ILogger<RedirectsModel> logger)
+    public RedirectsModel(IConfiguration configuration, IWebHostEnvironment env, SqliteUrlStore db, ILogger<RedirectsModel> logger)
     {
+        if (!env.IsDevelopment())
+        {
+            var configuredBaseUrl = configuration.GetValue<string>("BaseUrl");
+            BaseUrl = new Uri(configuredBaseUrl ?? throw new InvalidOperationException("BaseUrl not configured correctly."), UriKind.Absolute).ToString();
+        }
+
         Db = db;
         _logger = logger;
     }
+
+    private string GetEffectiveBaseUrl() =>
+        BaseUrl ?? $"{Request.Scheme}://{Request.Host}{Request.PathBase}/";
+
+    private string BuildRedirectLink(string id) =>
+        new Uri(new Uri(GetEffectiveBaseUrl(), UriKind.Absolute), id).ToString();
 
     public async Task OnGetAsync()
     {
@@ -26,7 +39,7 @@ public class RedirectsModel : PageModel
         var clickCounts = await Db.GetClickCountsForActiveRedirectsAsync();
 
         Redirects = redirects
-            .Select(x => new RedirectListItem(x, clickCounts.GetValueOrDefault(x.Id, 0)))
+            .Select(x => new RedirectListItem(x, clickCounts.GetValueOrDefault(x.Id, 0), BuildRedirectLink(x.Id)))
             .ToList();
     }
 
@@ -37,5 +50,5 @@ public class RedirectsModel : PageModel
         return RedirectToPage();
     }
 
-    public record RedirectListItem(StoredUrlRedirect Redirect, long ClickCount);
+    public record RedirectListItem(StoredUrlRedirect Redirect, long ClickCount, string RedirectLink);
 }

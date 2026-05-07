@@ -34,6 +34,24 @@ else
         <dl class="mb-5">
             <dt class="is-size-7 has-text-grey has-text-weight-semibold is-uppercase jsi-dt">ID</dt>
             <dd class="is-size-5 has-text-weight-medium mb-4"><code>@Model.UrlRedirect.Id</code></dd>
+            <dt class="is-size-7 has-text-grey has-text-weight-semibold is-uppercase jsi-dt">Short Link</dt>
+            <dd class="is-size-5 has-text-weight-medium mb-4">
+                @if (!string.IsNullOrWhiteSpace(Model.RedirectLink))
+                {
+                    <a href="@Model.RedirectLink">@Model.RedirectLink</a>
+                    <button type="button"
+                            class="button is-small"
+                            title="Copy short link"
+                            data-copy-url="@Model.RedirectLink"
+                            aria-label="Copy short link">
+                        <span class="icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+                                <path d="M16 1H6a2 2 0 0 0-2 2v12h2V3h10V1zm3 4H10a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H10V7h9v14z"/>
+                            </svg>
+                        </span>
+                    </button>
+                }
+            </dd>
             <dt class="is-size-7 has-text-grey has-text-weight-semibold is-uppercase jsi-dt">URL-Target</dt>
             <dd class="is-size-5 has-text-weight-medium mb-4 jsi-dd-url">@Model.UrlRedirect.Target</dd>
             <dt class="is-size-7 has-text-grey has-text-weight-semibold is-uppercase jsi-dt">Created</dt>
