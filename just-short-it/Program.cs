@@ -131,19 +131,6 @@ try
             "Credentials not set, please provide JSI_Account__Username, JSI_Account__PasswordHash and JSI_Account__PasswordSalt.");
     }
 
-    Log.Information(
-        "Account hash diagnostics: HashLength={HashLength}, HashPreview={HashPreview}, HashDollarCount={HashDollarCount}, HashStartsWith2={HashStartsWith2}, HashContainsWhitespace={HashContainsWhitespace}, HashContainsQuotes={HashContainsQuotes}, SaltLength={SaltLength}, SaltPreview={SaltPreview}, SaltContainsWhitespace={SaltContainsWhitespace}, SaltContainsQuotes={SaltContainsQuotes}",
-        account.PasswordHash.Length,
-        MaskSecret(account.PasswordHash),
-        CountOccurrences(account.PasswordHash, '$'),
-        account.PasswordHash.StartsWith("$2", StringComparison.Ordinal),
-        account.PasswordHash.Any(char.IsWhiteSpace),
-        account.PasswordHash.IndexOfAny(['\'', '"']) >= 0,
-        account.PasswordSalt.Length,
-        MaskSecret(account.PasswordSalt),
-        account.PasswordSalt.Any(char.IsWhiteSpace),
-        account.PasswordSalt.IndexOfAny(['\'', '"']) >= 0);
-
     try
     {
         var result = BCrypt.Net.BCrypt.InterrogateHash(account.PasswordHash);
@@ -152,6 +139,18 @@ try
     }
     catch (Exception ex)
     {
+        Log.Information(
+            "Account hash diagnostics: HashLength={HashLength}, HashPreview={HashPreview}, HashDollarCount={HashDollarCount}, HashStartsWith2={HashStartsWith2}, HashContainsWhitespace={HashContainsWhitespace}, HashContainsQuotes={HashContainsQuotes}, SaltLength={SaltLength}, SaltPreview={SaltPreview}, SaltContainsWhitespace={SaltContainsWhitespace}, SaltContainsQuotes={SaltContainsQuotes}",
+            account.PasswordHash.Length,
+            MaskSecret(account.PasswordHash),
+            CountOccurrences(account.PasswordHash, '$'),
+            account.PasswordHash.StartsWith("$2", StringComparison.Ordinal),
+            account.PasswordHash.Any(char.IsWhiteSpace),
+            account.PasswordHash.IndexOfAny(['\'', '"']) >= 0,
+            account.PasswordSalt.Length,
+            MaskSecret(account.PasswordSalt),
+            account.PasswordSalt.Any(char.IsWhiteSpace),
+            account.PasswordSalt.IndexOfAny(['\'', '"']) >= 0);
         Log.Fatal(ex, "Startup validation failed: JSI_Account__PasswordHash is not a valid BCrypt hash.");
         throw new ApplicationException(
             "JSI_Account__PasswordHash is not a valid BCrypt hash. Generate one using the Tools/CreateHash utility.");

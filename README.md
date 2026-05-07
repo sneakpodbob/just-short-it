@@ -203,10 +203,10 @@ services:
     ports:
       - "8081:8081"
     environment:
-      JSI_BaseUrl: '<deine-url>'
-      JSI_Account__Username: '<dein-benutzername>'
-      JSI_Account__PasswordHash: '<bcrypt-hash>'
-      JSI_Account__PasswordSalt: '<dein-salt>'
+      JSI_BaseUrl: <deine-url>
+      JSI_Account__Username: <dein-benutzername>
+      JSI_Account__PasswordHash: $$2b$$12$$<bcrypt-hash-rest>
+      JSI_Account__PasswordSalt: <dein-salt>
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8081/health/ready"]
       interval: 30s
@@ -215,7 +215,7 @@ services:
       start_period: 15s
 ```
 
-Die einfachen Anfuehrungszeichen sind hier Teil der YAML-Syntax und werden nicht an den Container weitergereicht. Sie schuetzen vor YAML-Sonderfaellen und verhindern bei BCrypt-Hashes mit `$`, dass Docker Compose eine Variablenersetzung versucht.
+Wichtig: Für Docker Compose müssen die `$`-Zeichen im BCrypt-Hash als `$$` geschrieben werden. Die Variante mit einfachen Anführungszeichen hat sich hier als nicht zuverlässig erwiesen; nur das Verdoppeln der `$`-Zeichen verhindert, dass Compose Teile des Hashs entfernt oder als Variablenersetzung behandelt.
 
 ### SQLite-Persistenz
 
@@ -238,11 +238,11 @@ services:
     ports:
       - "8081:8081"
     environment:
-      JSI_BaseUrl: '<deine-url>'
-      JSI_Account__Username: '<dein-benutzername>'
-      JSI_Account__PasswordHash: '<bcrypt-hash>'
-      JSI_Account__PasswordSalt: '<dein-salt>'
-      JSI_Sqlite__Path: '/app/data/justshortit.db'
+      JSI_BaseUrl: <deine-url>
+      JSI_Account__Username: <dein-benutzername>
+      JSI_Account__PasswordHash: $$2b$$12$$<bcrypt-hash-rest>
+      JSI_Account__PasswordSalt: <dein-salt>
+      JSI_Sqlite__Path: /app/data/justshortit.db
     volumes:
       - jsi-data:/app/data
     healthcheck:
@@ -449,10 +449,10 @@ services:
     ports:
       - "8081:8081"
     environment:
-      JSI_BaseUrl: '<your-url>'
-      JSI_Account__Username: '<your-username>'
-      JSI_Account__PasswordHash: '<bcrypt-hash>'
-      JSI_Account__PasswordSalt: '<your-salt>'
+      JSI_BaseUrl: <your-url>
+      JSI_Account__Username: <your-username>
+      JSI_Account__PasswordHash: $$2b$$12$$<bcrypt-hash-rest>
+      JSI_Account__PasswordSalt: <your-salt>
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8081/health/ready"]
       interval: 30s
@@ -461,7 +461,7 @@ services:
       start_period: 15s
 ```
 
-The single quotes here are YAML syntax only; they are not passed through as part of the value inside the container. They make the example safer for YAML parsing and avoid Docker Compose trying to interpolate `$` from BCrypt hashes.
+Important: In Docker Compose, the `$` characters in a BCrypt hash must be written as `$$`. Using single quotes around the hash did not reliably work here; doubling the `$` characters was the only reliable way to stop Compose from stripping parts of the hash or treating them as variable interpolation.
 
 ### SQLite persistence
 
@@ -485,11 +485,11 @@ services:
     ports:
       - "8081:8081"
     environment:
-      JSI_BaseUrl: '<your-url>'
-      JSI_Account__Username: '<your-username>'
-      JSI_Account__PasswordHash: '<bcrypt-hash>'
-      JSI_Account__PasswordSalt: '<your-salt>'
-      JSI_Sqlite__Path: '/app/data/justshortit.db'
+      JSI_BaseUrl: <your-url>
+      JSI_Account__Username: <your-username>
+      JSI_Account__PasswordHash: $$2b$$12$$<bcrypt-hash-rest>
+      JSI_Account__PasswordSalt: <your-salt>
+      JSI_Sqlite__Path: /app/data/justshortit.db
     volumes:
       - jsi-data:/app/data
     healthcheck:
