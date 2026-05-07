@@ -134,9 +134,21 @@ public class SqliteUrlStore
         try
         {
             await _dbContext.SaveChangesAsync();
-            _logger.LogInformation(existingRedirect is null
-                ? "Created redirect {RedirectId}."
-                : "Refreshed expired redirect {RedirectId}.", id);
+            
+            // ReSharper disable once InvertIf
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                // ReSharper disable once ConvertIfStatementToConditionalTernaryExpression
+                if (existingRedirect is null)
+                {
+                    _logger.LogInformation("Created redirect {RedirectId}.", id);
+                }
+                else
+                {
+                    _logger.LogInformation("Refreshed expired redirect {RedirectId}.", id);
+                }
+            }
+
             return true;
         }
         catch (DbUpdateException)
@@ -258,23 +270,15 @@ public class SqliteUrlStore
     {
         var candidates = new List<string> { string.Empty };
 
-        foreach (var character in reservedId)
+        foreach (var nextCharacters in reservedId.Select(GetEquivalentAlphabetCharacters))
         {
-            var nextCharacters = GetEquivalentAlphabetCharacters(character);
             if (nextCharacters.Count == 0)
             {
                 return [];
             }
 
             var nextCandidates = new List<string>(candidates.Count * nextCharacters.Count);
-
-            foreach (var prefix in candidates)
-            {
-                foreach (var nextCharacter in nextCharacters)
-                {
-                    nextCandidates.Add(prefix + nextCharacter);
-                }
-            }
+            nextCandidates.AddRange(from prefix in candidates from nextCharacter in nextCharacters select prefix + nextCharacter);
 
             candidates = nextCandidates;
         }
