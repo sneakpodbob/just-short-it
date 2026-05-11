@@ -115,6 +115,7 @@ Zusätzlich wichtig:
 - Passwortprüfung nutzt BCrypt über `passwort + salt` gegen den konfigurierten Hash.
 - Authentifizierte Seiten:
   - URL-Verwaltung (`/Urls`)
+  - Redirect-Liste (`/Redirects`)
   - Redirect-Inspektion/Löschen (`/Inspect`)
 - Cookie-Verhalten:
   - Lebensdauer: 24 Stunden
@@ -123,11 +124,11 @@ Zusätzlich wichtig:
 
 Hash für die Konfiguration erzeugen:
 
-- Datei-basiertes Tool unter `TOOLS/CreateHash.cs` (ohne eigenes `.csproj`).
+- Datei-basiertes Tool unter `Tools/CreateHash.cs` (ohne eigenes `.csproj`).
 - Start im Repository-Root mit:
 
 ```bash
-dotnet run ./TOOLS/CreateHash.cs
+dotnet run ./Tools/CreateHash.cs
 ```
 
 - Das Tool fragt interaktiv nach Salt und Passwort und gibt den BCrypt-Hash für `passwort + salt` aus.
@@ -361,6 +362,7 @@ Also important:
 - Password verification uses BCrypt against configured `password + salt`.
 - Authenticated pages:
   - URL management (`/Urls`)
+  - Redirect list (`/Redirects`)
   - Redirect inspection/deletion (`/Inspect`)
 - Cookie behavior:
   - Lifetime: 24 hours
@@ -369,11 +371,11 @@ Also important:
 
 Generate a hash for configuration:
 
-- File-based helper under `TOOLS/CreateHash.cs` (no dedicated `.csproj` needed).
+- File-based helper under `Tools/CreateHash.cs` (no dedicated `.csproj` needed).
 - Run it from the repository root:
 
 ```bash
-dotnet run ./TOOLS/CreateHash.cs
+dotnet run ./Tools/CreateHash.cs
 ```
 
 - The tool interactively asks for salt and password, then prints the BCrypt hash for `password + salt`.
