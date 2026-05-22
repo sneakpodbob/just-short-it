@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
     <PackageReference Include="Coravel" Version="6.0.2" />
     <PackageReference Include="Humanizer" Version="3.0.10" />
     <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
